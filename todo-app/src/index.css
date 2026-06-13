@@ -1,0 +1,79 @@
+@import "tailwindcss";
+
+@theme {
+  --animate-slide-in: slideIn 0.3s ease-out;
+  --animate-fade-in: fadeIn 0.2s ease-out;
+  --animate-scale-in: scaleIn 0.2s ease-out;
+  --animate-float: float 3s ease-in-out infinite;
+  --animate-glow-pulse: glowPulse 2s ease-in-out infinite;
+
+  @keyframes slideIn {
+    0% { transform: translateX(-10px); opacity: 0; }
+    100% { transform: translateX(0); opacity: 1; }
+  }
+  @keyframes fadeIn {
+    0% { opacity: 0; }
+    100% { opacity: 1; }
+  }
+  @keyframes scaleIn {
+    0% { transform: scale(0.95); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+  }
+  @keyframes glowPulse {
+    0%, 100% { box-shadow: 0 0 8px rgba(14, 165, 233, 0.3); }
+    50% { box-shadow: 0 0 20px rgba(14, 165, 233, 0.6); }
+  }
+}
+
+body {
+  margin: 0;
+  background: linear-gradient(135deg, #0c1222 0%, #111827 50%, #0f172a 100%);
+  min-height: 100vh;
+  color: #e2e8f0;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.confetti-piece {
+  position: fixed;
+  width: 10px;
+  height: 10px;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+input, textarea, select {
+  color-scheme: dark;
+}
+
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+}
+
+.print-only {
+  display: none;
+}
