@@ -6,7 +6,7 @@ import {
 import {
   SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { BarChart3, ListTodo, ChevronDown, Target, ArrowLeft, Clock, Grid, List, Award, Users2, Sparkles, TrendingUp } from 'lucide-react';
+import { BarChart3, ListTodo, ChevronDown, Target, ArrowLeft, Clock, Grid, List, Award, Users2, Sparkles, TrendingUp, Presentation, Palette, Heart } from 'lucide-react';
 import gsap from 'gsap';
 import { useTodos } from './hooks/useTodos';
 import { TodoItem } from './components/TodoItem';
@@ -19,21 +19,48 @@ import { Confetti } from './components/Confetti';
 import { LogoWall } from './components/LogoWall';
 import { PomodoroTimer } from './components/PomodoroTimer';
 import { EisenhowerMatrix } from './components/EisenhowerMatrix';
+import { RoadmapPlanner } from './components/RoadmapPlanner';
+import { MeetingWorkspace } from './components/MeetingWorkspace';
+import { PresentationExporter } from './components/PresentationExporter';
+import { CreativeWorkspace } from './components/CreativeWorkspace';
+import { LifestyleWorkspace } from './components/LifestyleWorkspace';
 import { cn } from './lib/utils';
 
 function App() {
   const {
     todos, allTodos, categories, stats, filter, selectedCategory, searchQuery, sortBy, sortOrder,
+    userPersona, meetings, habits, inspirations,
     addTodo, updateTodo, deleteTodo, toggleTodo, addSubtask, toggleSubtask, deleteSubtask,
     reorderTodos, addCategory, deleteCategory, setFilter, setSelectedCategory, setSearchQuery,
-    setSortBy, setSortOrder,
+    setSortBy, setSortOrder, setPersona, addMeeting, updateMeeting, deleteMeeting,
+    addHabit, toggleHabitDay, deleteHabit, addInspiration, deleteInspiration,
   } = useTodos();
 
   const [showStats, setShowStats] = useState(false);
   const [showTargetBoard, setShowTargetBoard] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const [workspaceActive, setWorkspaceActive] = useState(false);
-  const [viewMode, setViewMode] = useState<'list' | 'matrix'>('list');
+  const [viewMode, setViewMode] = useState<'list' | 'matrix' | 'roadmap' | 'meetings' | 'creative' | 'personal'>('list');
+  
+  // Slide Exporter states
+  const [showExporter, setShowExporter] = useState(false);
+  const [exporterTitle, setExporterTitle] = useState('');
+  const [exporterNotes, setExporterNotes] = useState('');
+
+  // View safety constraint effect
+  useEffect(() => {
+    if (userPersona === 'student' && viewMode !== 'list') {
+      setViewMode('list');
+    } else if (userPersona === 'professional' && !['list', 'matrix', 'roadmap'].includes(viewMode)) {
+      setViewMode('list');
+    } else if (userPersona === 'business' && !['list', 'matrix', 'roadmap', 'meetings'].includes(viewMode)) {
+      setViewMode('list');
+    } else if (userPersona === 'creative' && !['list', 'creative'].includes(viewMode)) {
+      setViewMode('list');
+    } else if (userPersona === 'personal' && !['list', 'personal'].includes(viewMode)) {
+      setViewMode('list');
+    }
+  }, [userPersona, viewMode]);
 
   const prevCompletedRef = useRef(stats.completed);
   const landingHeroRef = useRef<HTMLDivElement>(null);
@@ -98,12 +125,20 @@ function App() {
     <>
       <Confetti active={showConfetti} />
       {showTargetBoard && <TargetBoard todos={allTodos} categories={categories} onClose={() => setShowTargetBoard(false)} />}
+      {showExporter && (
+        <PresentationExporter 
+          todos={allTodos} 
+          meetingTitle={exporterTitle} 
+          meetingNotes={exporterNotes} 
+          onClose={() => setShowExporter(false)} 
+        />
+      )}
 
       <div className="min-h-screen pb-12 transition-colors duration-300">
         
         {/* Navigation Header */}
         <header className="sticky top-0 z-40 w-full frosted-nav border-b border-[var(--border-color)]/30 backdrop-blur-md">
-          <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
+          <div className="max-w-full mx-auto px-6 lg:px-12 h-14 flex items-center justify-between">
             <div 
               onClick={() => setWorkspaceActive(false)} 
               className="flex items-center gap-3 cursor-pointer select-none"
@@ -160,7 +195,7 @@ function App() {
           <div ref={landingHeroRef} className="space-y-16 mt-8">
             
             {/* Hero Section */}
-            <section className="max-w-6xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center pt-8 md:pt-16">
+            <section className="max-w-full mx-auto px-6 lg:px-12 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center pt-8 md:pt-16">
               <div className="lg:col-span-7 space-y-5">
                 <span className="inline-block text-[11px] font-semibold uppercase tracking-wider text-[var(--accent)] bg-[var(--accent)]/10 px-3 py-1 rounded-full">
                   Minimalist Workspace
@@ -188,7 +223,7 @@ function App() {
               </div>
               
               {/* Product Preview Card */}
-              <div className="lg:col-span-5 bg-[var(--card-bg)] border border-[var(--border-color)] p-6 rounded-[24px] space-y-4 apple-product-shadow select-none">
+              <div className="lg:col-span-5 bg-[var(--card-bg)] border border-[var(--border-color)] p-6 rounded-[24px] space-y-4 apple-product-shadow select-none card-3d float-3d">
                 <div className="flex items-center justify-between border-b border-[var(--border-color)]/30 pb-3">
                   <div className="flex items-center gap-2">
                     <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
@@ -218,7 +253,7 @@ function App() {
             <LogoWall />
 
             {/* Corporate Stats and Impact Grid */}
-            <section className="max-w-6xl mx-auto px-6 pt-4">
+            <section className="max-w-full mx-auto px-6 lg:px-12 pt-4">
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 p-8 border border-[var(--border-color)]/60 rounded-[24px] bg-[var(--card-bg)]/20 backdrop-blur-sm">
                 <div className="text-center space-y-1">
                   <div className="flex items-center justify-center gap-1.5 text-[var(--accent)] mb-1">
@@ -252,7 +287,7 @@ function App() {
             </section>
 
             {/* Corporate Integration Details (Case Studies/Use Cases) */}
-            <section className="max-w-6xl mx-auto px-6 space-y-8 pt-4">
+            <section className="max-w-full mx-auto px-6 lg:px-12 space-y-8 pt-4">
               <div className="text-center max-w-xl mx-auto">
                 <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--accent)]">Enterprise Success</span>
                 <h3 className="text-2xl md:text-3xl font-bold tracking-tight-display text-[var(--foreground)] mt-1">
@@ -300,7 +335,7 @@ function App() {
             </section>
 
             {/* Features Bento Grid */}
-            <section id="features" className="max-w-6xl mx-auto px-6 space-y-8 pt-4">
+            <section id="features" className="max-w-full mx-auto px-6 lg:px-12 space-y-8 pt-4">
               <div className="text-center max-w-xl mx-auto">
                 <h3 className="text-2xl md:text-3xl font-bold tracking-tight-display text-[var(--foreground)]">
                   Designed for execution
@@ -350,7 +385,7 @@ function App() {
             </section>
 
             {/* Testimonials Grid */}
-            <section className="max-w-6xl mx-auto px-6 space-y-8 pt-4">
+            <section className="max-w-full mx-auto px-6 lg:px-12 space-y-8 pt-4">
               <div className="text-center max-w-xl mx-auto">
                 <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--accent)]">Social Proof</span>
                 <h3 className="text-2xl md:text-3xl font-bold tracking-tight-display text-[var(--foreground)] mt-1">
@@ -407,7 +442,7 @@ function App() {
           </div>
         ) : (
           /* Main Workspace Dashboard */
-          <div ref={mainWorkspaceRef} className="max-w-6xl mx-auto px-6 mt-8">
+          <div ref={mainWorkspaceRef} className="max-w-full mx-auto px-6 lg:px-12 mt-8">
             <MotivationalQuote />
 
             {/* Stats section toggle */}
@@ -429,6 +464,8 @@ function App() {
                   onSearchChange={setSearchQuery} 
                   onAddCategory={addCategory} 
                   onDeleteCategory={deleteCategory} 
+                  userPersona={userPersona}
+                  onPersonaChange={setPersona}
                 />
               </div>
 
@@ -446,29 +483,86 @@ function App() {
                   </p>
                   
                   <div className="flex items-center gap-4">
-                    {/* View Switcher: List vs Matrix */}
-                    <div className="flex items-center gap-1 border border-[var(--border-color)]/60 p-0.5 rounded-full bg-[var(--card-bg)]">
-                      <button
-                        onClick={() => setViewMode('list')}
-                        className={cn(
-                          'p-1.5 rounded-full transition-colors cursor-pointer btn-pressable',
-                          viewMode === 'list' ? 'bg-[var(--accent)] text-white' : 'text-[var(--muted-text)] hover:text-[var(--foreground)]'
+                    {/* View Switcher: List vs Matrix vs Roadmap vs Meetings */}
+                    {/* View Switcher dynamically rendered per persona */}
+                    {userPersona !== 'student' && (
+                      <div className="flex items-center gap-1 border border-[var(--border-color)]/60 p-0.5 rounded-full bg-[var(--card-bg)]">
+                        <button
+                          onClick={() => setViewMode('list')}
+                          className={cn(
+                            'p-1.5 rounded-full transition-colors cursor-pointer btn-pressable',
+                            viewMode === 'list' ? 'bg-[var(--accent)] text-white' : 'text-[var(--muted-text)] hover:text-[var(--foreground)]'
+                          )}
+                          title="List View"
+                        >
+                          <List size={13} />
+                        </button>
+
+                        {['professional', 'business'].includes(userPersona) && (
+                          <>
+                            <button
+                              onClick={() => setViewMode('matrix')}
+                              className={cn(
+                                'p-1.5 rounded-full transition-colors cursor-pointer btn-pressable',
+                                viewMode === 'matrix' ? 'bg-[var(--accent)] text-white' : 'text-[var(--muted-text)] hover:text-[var(--foreground)]'
+                              )}
+                              title="Eisenhower Matrix View"
+                            >
+                              <Grid size={13} />
+                            </button>
+                            <button
+                              onClick={() => setViewMode('roadmap')}
+                              className={cn(
+                                'p-1.5 rounded-full transition-colors cursor-pointer btn-pressable',
+                                viewMode === 'roadmap' ? 'bg-[var(--accent)] text-white' : 'text-[var(--muted-text)] hover:text-[var(--foreground)]'
+                              )}
+                              title="Quarterly Project Roadmap"
+                            >
+                              <TrendingUp size={13} />
+                            </button>
+                          </>
                         )}
-                        title="List View"
-                      >
-                        <List size={13} />
-                      </button>
-                      <button
-                        onClick={() => setViewMode('matrix')}
-                        className={cn(
-                          'p-1.5 rounded-full transition-colors cursor-pointer btn-pressable',
-                          viewMode === 'matrix' ? 'bg-[var(--accent)] text-white' : 'text-[var(--muted-text)] hover:text-[var(--foreground)]'
+
+                        {userPersona === 'business' && (
+                          <button
+                            onClick={() => setViewMode('meetings')}
+                            className={cn(
+                              'p-1.5 rounded-full transition-colors cursor-pointer btn-pressable',
+                              viewMode === 'meetings' ? 'bg-[var(--accent)] text-white' : 'text-[var(--muted-text)] hover:text-[var(--foreground)]'
+                            )}
+                            title="Meeting Notes & Action Items"
+                          >
+                            <Presentation size={13} />
+                          </button>
                         )}
-                        title="Eisenhower Matrix View"
-                      >
-                        <Grid size={13} />
-                      </button>
-                    </div>
+
+                        {userPersona === 'creative' && (
+                          <button
+                            onClick={() => setViewMode('creative')}
+                            className={cn(
+                              'p-1.5 rounded-full transition-colors cursor-pointer btn-pressable',
+                              viewMode === 'creative' ? 'bg-[var(--accent)] text-white' : 'text-[var(--muted-text)] hover:text-[var(--foreground)]'
+                            )}
+                            title="Inspiration Moodboard"
+                          >
+                            <Palette size={13} />
+                          </button>
+                        )}
+
+                        {userPersona === 'personal' && (
+                          <button
+                            onClick={() => setViewMode('personal')}
+                            className={cn(
+                              'p-1.5 rounded-full transition-colors cursor-pointer btn-pressable',
+                              viewMode === 'personal' ? 'bg-[var(--accent)] text-white' : 'text-[var(--muted-text)] hover:text-[var(--foreground)]'
+                            )}
+                            title="Habits Tracker"
+                          >
+                            <Heart size={13} />
+                          </button>
+                        )}
+                      </div>
+                    )}
 
                     {/* Sorting option (list view only) */}
                     {viewMode === 'list' && (
@@ -527,13 +621,50 @@ function App() {
                       </SortableContext>
                     </DndContext>
                   )
-                ) : (
+                ) : viewMode === 'matrix' ? (
                   /* Dynamic Eisenhower Quadrants */
                   <EisenhowerMatrix 
                     todos={todos} 
                     categories={categories} 
                     onToggle={toggleTodo} 
                     onDelete={deleteTodo} 
+                  />
+                ) : viewMode === 'roadmap' ? (
+                  /* Quarterly Project Roadmap Timeline */
+                  <RoadmapPlanner 
+                    todos={allTodos} 
+                    onUpdateTodo={updateTodo} 
+                  />
+                ) : viewMode === 'meetings' ? (
+                  /* Meeting notes Action Item compiler workspace */
+                  <MeetingWorkspace 
+                    meetings={meetings} 
+                    todos={allTodos} 
+                    onAddMeeting={addMeeting} 
+                    onUpdateMeeting={updateMeeting} 
+                    onDeleteMeeting={deleteMeeting} 
+                    onAddTodo={addTodo} 
+                    onLaunchPresentation={(title, notes) => {
+                      setExporterTitle(title);
+                      setExporterNotes(notes);
+                      setShowExporter(true);
+                    }}
+                  />
+                ) : viewMode === 'creative' ? (
+                  /* Creative Workspace Moodboard */
+                  <CreativeWorkspace
+                    inspirations={inspirations}
+                    todos={allTodos}
+                    onAddInspiration={addInspiration}
+                    onDeleteInspiration={deleteInspiration}
+                  />
+                ) : (
+                  /* Personal Workspace Habits tracker */
+                  <LifestyleWorkspace
+                    habits={habits}
+                    onAddHabit={addHabit}
+                    onToggleHabitDay={toggleHabitDay}
+                    onDeleteHabit={deleteHabit}
                   />
                 )}
               </main>

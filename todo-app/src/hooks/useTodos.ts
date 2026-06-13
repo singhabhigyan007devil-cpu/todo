@@ -1,8 +1,45 @@
 import { useMemo, useCallback } from 'react';
 import { useLocalStorage } from './useLocalStorage';
 import { generateId } from '../lib/utils';
-import type { Todo, Category, Subtask, Priority, FilterType, TodoStats, AppState } from '../types/todo';
+import type { Todo, Category, Subtask, Priority, FilterType, TodoStats, AppState, UserPersona, Meeting, Habit, Inspiration } from '../types/todo';
 import { DEFAULT_CATEGORIES } from '../types/todo';
+
+export const DEFAULT_HABITS: Habit[] = [
+  { id: 'h1', name: 'Daily Hydration (8 glasses)', frequency: 'daily', streak: 0, completedDays: [], createdAt: Date.now() },
+  { id: 'h2', name: '30-Minute Exercise', frequency: 'daily', streak: 0, completedDays: [], createdAt: Date.now() },
+  { id: 'h3', name: 'Read 10 Pages of a Book', frequency: 'daily', streak: 0, completedDays: [], createdAt: Date.now() },
+  { id: 'h4', name: 'Mindful Meditation', frequency: 'daily', streak: 0, completedDays: [], createdAt: Date.now() },
+];
+
+export const DEFAULT_INSPIRATIONS: Inspiration[] = [
+  {
+    id: 'i1',
+    title: 'Clean Minimalist UI Style',
+    type: 'image',
+    content: 'https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?auto=format&fit=crop&w=600&q=80',
+    notes: 'Reference layout for dark interface cards, glassmorphic filters, and neon-themed focus lines.',
+    linkedTodoId: null,
+    createdAt: Date.now()
+  },
+  {
+    id: 'i2',
+    title: 'Primary Accent Color Swatch',
+    type: 'color',
+    content: '#2997ff',
+    notes: 'Premium Apple-inspired blue accent color. Use with HSL opacity modifiers for active states.',
+    linkedTodoId: null,
+    createdAt: Date.now()
+  },
+  {
+    id: 'i3',
+    title: 'Dieter Rams Quote',
+    type: 'quote',
+    content: 'Good design is as little design as possible. Less, but better – because it concentrates on the essential aspects.',
+    notes: 'Core creative design methodology to follow across all features.',
+    linkedTodoId: null,
+    createdAt: Date.now()
+  }
+];
 
 const initialState: AppState = {
   todos: [],
@@ -12,6 +49,10 @@ const initialState: AppState = {
   searchQuery: '',
   sortBy: 'order',
   sortOrder: 'asc',
+  userPersona: 'professional',
+  meetings: [],
+  habits: DEFAULT_HABITS,
+  inspirations: DEFAULT_INSPIRATIONS,
 };
 
 export function useTodos() {
@@ -19,6 +60,10 @@ export function useTodos() {
 
   const todos = state.todos;
   const categories = state.categories;
+  const userPersona = state.userPersona || 'professional';
+  const meetings = state.meetings || [];
+  const habits = state.habits || DEFAULT_HABITS;
+  const inspirations = state.inspirations || DEFAULT_INSPIRATIONS;
 
   const addTodo = useCallback((title: string, description: string, priority: Priority, categoryId: string | null, dueDate: number | null) => {
     const newTodo: Todo = {
@@ -272,6 +317,139 @@ export function useTodos() {
     };
   }, [todos, categories]);
 
+  const setPersona = useCallback((userPersona: UserPersona) => {
+    setState((prev) => ({ ...prev, userPersona }));
+  }, [setState]);
+
+  const addMeeting = useCallback((title: string, date: string, time: string, attendees: string, notes: string) => {
+    const newMeeting: Meeting = {
+      id: generateId(),
+      title,
+      date,
+      time,
+      attendees,
+      notes,
+      createdAt: Date.now(),
+    };
+    setState((prev) => ({
+      ...prev,
+      meetings: [...(prev.meetings || []), newMeeting],
+    }));
+  }, [setState]);
+
+  const updateMeeting = useCallback((id: string, updates: Partial<Meeting>) => {
+    setState((prev) => ({
+      ...prev,
+      meetings: (prev.meetings || []).map((m) =>
+        m.id === id ? { ...m, ...updates } : m
+      ),
+    }));
+  }, [setState]);
+
+  const deleteMeeting = useCallback((id: string) => {
+    setState((prev) => ({
+      ...prev,
+      meetings: (prev.meetings || []).filter((m) => m.id !== id),
+    }));
+  }, [setState]);
+
+  const addHabit = useCallback((name: string, frequency: 'daily' | 'weekly' = 'daily') => {
+    const newHabit: Habit = {
+      id: generateId(),
+      name,
+      frequency,
+      streak: 0,
+      completedDays: [],
+      createdAt: Date.now(),
+    };
+    setState((prev) => ({
+      ...prev,
+      habits: [...(prev.habits || DEFAULT_HABITS), newHabit],
+    }));
+  }, [setState]);
+
+  const toggleHabitDay = useCallback((id: string, dateStr: string) => {
+    setState((prev) => {
+      const currentHabits = prev.habits || DEFAULT_HABITS;
+      const updated = currentHabits.map((h) => {
+        if (h.id !== id) return h;
+        const exists = h.completedDays.includes(dateStr);
+        const newCompleted = exists
+          ? h.completedDays.filter((d) => d !== dateStr)
+          : [...h.completedDays, dateStr].sort();
+        
+        let streak = 0;
+        const sortedCompleted = [...newCompleted].sort();
+        if (sortedCompleted.length > 0) {
+          const today = new Date();
+          today.setHours(0,0,0,0);
+          
+          let checkDate = new Date(today);
+          const hasToday = sortedCompleted.includes(checkDate.toISOString().split('T')[0]);
+          if (!hasToday) {
+            checkDate.setDate(checkDate.getDate() - 1);
+          }
+          
+          while (true) {
+            const dateKey = checkDate.toISOString().split('T')[0];
+            if (sortedCompleted.includes(dateKey)) {
+              streak++;
+              checkDate.setDate(checkDate.getDate() - 1);
+            } else {
+              break;
+            }
+          }
+        }
+
+        return {
+          ...h,
+          completedDays: newCompleted,
+          streak,
+        };
+      });
+      return { ...prev, habits: updated };
+    });
+  }, [setState]);
+
+  const deleteHabit = useCallback((id: string) => {
+    setState((prev) => ({
+      ...prev,
+      habits: (prev.habits || DEFAULT_HABITS).filter((h) => h.id !== id),
+    }));
+  }, [setState]);
+
+  const addInspiration = useCallback((title: string, type: 'image' | 'color' | 'quote' | 'link', content: string, notes: string, linkedTodoId: string | null = null) => {
+    const newInspiration: Inspiration = {
+      id: generateId(),
+      title,
+      type,
+      content,
+      notes,
+      linkedTodoId,
+      createdAt: Date.now(),
+    };
+    setState((prev) => ({
+      ...prev,
+      inspirations: [...(prev.inspirations || DEFAULT_INSPIRATIONS), newInspiration],
+    }));
+  }, [setState]);
+
+  const deleteInspiration = useCallback((id: string) => {
+    setState((prev) => ({
+      ...prev,
+      inspirations: (prev.inspirations || DEFAULT_INSPIRATIONS).filter((i) => i.id !== id),
+    }));
+  }, [setState]);
+
+  const updateInspiration = useCallback((id: string, updates: Partial<Inspiration>) => {
+    setState((prev) => ({
+      ...prev,
+      inspirations: (prev.inspirations || DEFAULT_INSPIRATIONS).map((i) =>
+        i.id === id ? { ...i, ...updates } : i
+      ),
+    }));
+  }, [setState]);
+
   return {
     todos: filteredTodos,
     allTodos: todos,
@@ -282,6 +460,10 @@ export function useTodos() {
     searchQuery: state.searchQuery,
     sortBy: state.sortBy,
     sortOrder: state.sortOrder,
+    userPersona,
+    meetings,
+    habits,
+    inspirations,
     addTodo,
     updateTodo,
     deleteTodo,
@@ -297,5 +479,15 @@ export function useTodos() {
     setSearchQuery,
     setSortBy,
     setSortOrder,
+    setPersona,
+    addMeeting,
+    updateMeeting,
+    deleteMeeting,
+    addHabit,
+    toggleHabitDay,
+    deleteHabit,
+    addInspiration,
+    deleteInspiration,
+    updateInspiration,
   };
 }

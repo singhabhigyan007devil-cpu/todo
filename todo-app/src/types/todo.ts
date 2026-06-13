@@ -1,6 +1,38 @@
 export type Priority = 'low' | 'medium' | 'high';
 export type FilterType = 'all' | 'active' | 'completed';
 
+export type UserPersona = 'student' | 'professional' | 'business' | 'creative' | 'personal';
+export type RoadmapPhase = 'q1' | 'q2' | 'q3' | 'q4' | null;
+
+export interface Habit {
+  id: string;
+  name: string;
+  frequency: 'daily' | 'weekly';
+  streak: number;
+  completedDays: string[]; // List of YYYY-MM-DD strings
+  createdAt: number;
+}
+
+export interface Inspiration {
+  id: string;
+  title: string;
+  type: 'image' | 'color' | 'quote' | 'link';
+  content: string;
+  notes: string;
+  linkedTodoId: string | null;
+  createdAt: number;
+}
+
+export interface Meeting {
+  id: string;
+  title: string;
+  date: string;
+  time: string;
+  attendees: string;
+  notes: string;
+  createdAt: number;
+}
+
 export interface Subtask {
   id: string;
   title: string;
@@ -28,6 +60,7 @@ export interface Todo {
   updatedAt: number;
   completedAt: number | null;
   order: number;
+  roadmapPhase?: RoadmapPhase;
 }
 
 export interface TodoStats {
@@ -50,6 +83,10 @@ export interface AppState {
   searchQuery: string;
   sortBy: 'createdAt' | 'dueDate' | 'priority' | 'title' | 'order';
   sortOrder: 'asc' | 'desc';
+  userPersona: UserPersona;
+  meetings?: Meeting[];
+  habits?: Habit[];
+  inspirations?: Inspiration[];
 }
 
 export const PRIORITY_LABELS: Record<Priority, string> = {

@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { ListTodo, CheckCircle2, Circle, Search, Plus, X, Layers, FolderKanban } from 'lucide-react';
-import type { Category, FilterType, TodoStats } from '../types/todo';
+import { ListTodo, CheckCircle2, Circle, Search, Plus, X, Layers, FolderKanban, GraduationCap, Briefcase, Building2, Palette, Heart } from 'lucide-react';
+import type { Category, FilterType, TodoStats, UserPersona } from '../types/todo';
 import { cn } from '../lib/utils';
 
 interface SidebarProps {
@@ -14,11 +14,13 @@ interface SidebarProps {
   onSearchChange: (query: string) => void;
   onAddCategory: (name: string, color: string) => void;
   onDeleteCategory: (id: string) => void;
+  userPersona: UserPersona;
+  onPersonaChange: (persona: UserPersona) => void;
 }
 
 const COLORS = ['#0066cc', '#7928ca', '#f5a623', '#50e3c2', '#ee0000', '#eb367f', '#2997ff', '#29bc9b'];
 
-export function Sidebar({ categories, filter, selectedCategory, searchQuery, stats, onFilterChange, onCategorySelect, onSearchChange, onAddCategory, onDeleteCategory }: SidebarProps) {
+export function Sidebar({ categories, filter, selectedCategory, searchQuery, stats, onFilterChange, onCategorySelect, onSearchChange, onAddCategory, onDeleteCategory, userPersona, onPersonaChange }: SidebarProps) {
   const [showAddCategory, setShowAddCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [newCategoryColor, setNewCategoryColor] = useState(COLORS[0]);
@@ -38,8 +40,55 @@ export function Sidebar({ categories, filter, selectedCategory, searchQuery, sta
     { id: 'completed', label: 'Completed', icon: CheckCircle2, count: stats.completed },
   ];
 
+  const categoryHeader = 
+    userPersona === 'student' ? 'Subjects & Courses' : 
+    userPersona === 'creative' ? 'Creative Channels' :
+    userPersona === 'personal' ? 'Life Domains' :
+    'Categories';
+
+  const addCategoryPlaceholder = 
+    userPersona === 'student' ? 'Subject name' : 
+    userPersona === 'creative' ? 'Channel name' :
+    userPersona === 'personal' ? 'Domain name' :
+    'Category name';
+
+  const allCategoriesLabel = 
+    userPersona === 'student' ? 'All subjects' : 
+    userPersona === 'creative' ? 'All channels' :
+    userPersona === 'personal' ? 'All domains' :
+    'All categories';
+
   return (
     <aside className="w-full lg:w-64 flex-shrink-0 space-y-6">
+      {/* Workspace Profile Selector Switcher */}
+      <div className="space-y-1.5 p-3.5 border border-[var(--border-color)]/60 rounded-xl bg-[var(--card-bg)]/40 backdrop-blur-sm">
+        <label className="text-[9px] font-bold uppercase tracking-wider text-[var(--muted-text)] block">Workspace Mode</label>
+        <div className="flex items-center gap-2">
+          {userPersona === 'student' ? (
+            <GraduationCap size={15} className="text-blue-400" />
+          ) : userPersona === 'business' ? (
+            <Building2 size={15} className="text-purple-400" />
+          ) : userPersona === 'creative' ? (
+            <Palette size={15} className="text-pink-400" />
+          ) : userPersona === 'personal' ? (
+            <Heart size={15} className="text-emerald-400" />
+          ) : (
+            <Briefcase size={15} className="text-amber-400" />
+          )}
+          <select
+            value={userPersona}
+            onChange={(e) => onPersonaChange(e.target.value as UserPersona)}
+            className="flex-1 text-[11px] font-semibold border-0 bg-transparent text-[var(--foreground)] focus:outline-none focus:ring-0 p-0 cursor-pointer"
+          >
+            <option value="student">Student Mode</option>
+            <option value="professional">Professional Mode</option>
+            <option value="business">Business / Enterprise</option>
+            <option value="creative">Creative / Designer</option>
+            <option value="personal">Personal / Lifestyle</option>
+          </select>
+        </div>
+      </div>
+
       {/* Search Input styled as a full pill */}
       <div className="relative">
         <Search size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--muted-text)]" />
@@ -85,7 +134,7 @@ export function Sidebar({ categories, filter, selectedCategory, searchQuery, sta
         <div className="flex items-center justify-between mb-3 px-1.5">
           <h3 className="text-[11px] font-semibold uppercase tracking-wider text-[var(--muted-text)] flex items-center gap-1.5">
             <FolderKanban size={13} />
-            Categories
+            {categoryHeader}
           </h3>
           <button 
             onClick={() => setShowAddCategory(!showAddCategory)} 
@@ -101,7 +150,7 @@ export function Sidebar({ categories, filter, selectedCategory, searchQuery, sta
               type="text"
               value={newCategoryName}
               onChange={(e) => setNewCategoryName(e.target.value)}
-              placeholder="Category name"
+              placeholder={addCategoryPlaceholder}
               className="w-full px-2.5 py-1.5 text-xs border border-[var(--border-color)] rounded-lg bg-[var(--background)] text-[var(--foreground)] placeholder-[var(--muted-text)]/50 focus:outline-none focus:ring-1 focus:ring-[var(--accent)]/30"
               autoFocus
               onKeyDown={(e) => { if (e.key === 'Enter') handleAddCategory(); if (e.key === 'Escape') setShowAddCategory(false); }}
@@ -147,7 +196,7 @@ export function Sidebar({ categories, filter, selectedCategory, searchQuery, sta
                 : 'text-[var(--foreground)] hover:bg-black/5 dark:hover:bg-white/5'
             )}
           >
-            <span className="flex items-center gap-2.5"><Layers size={14} className="text-[var(--muted-text)]" />All categories</span>
+            <span className="flex items-center gap-2.5"><Layers size={14} className="text-[var(--muted-text)]" />{allCategoriesLabel}</span>
             <span className="text-[11px] text-[var(--muted-text)]">{stats.total}</span>
           </button>
 
