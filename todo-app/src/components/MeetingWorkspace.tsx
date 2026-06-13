@@ -1,12 +1,12 @@
-import { useState, useEffect } from 'react';
-import { Calendar, Users, FileText, Plus, Trash2, Presentation, Clock, CheckCircle2, Circle, AlertCircle } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { Calendar, Users, FileText, Plus, Trash2, Presentation, Clock, CheckCircle2, Circle, AlertCircle, Link2, ExternalLink, Copy, Check } from 'lucide-react';
 import type { Meeting, Todo } from '../types/todo';
 import { cn } from '../lib/utils';
 
 interface MeetingWorkspaceProps {
   meetings: Meeting[];
   todos: Todo[];
-  onAddMeeting: (title: string, date: string, time: string, attendees: string, notes: string) => void;
+  onAddMeeting: (title: string, date: string, time: string, attendees: string, notes: string, meetingLink?: string) => void;
   onUpdateMeeting: (id: string, updates: Partial<Meeting>) => void;
   onDeleteMeeting: (id: string) => void;
   onAddTodo: (title: string, description: string, priority: 'low' | 'medium' | 'high', categoryId: string | null, dueDate: number | null) => void;
@@ -23,23 +23,56 @@ export function MeetingWorkspace({
   onLaunchPresentation,
 }: MeetingWorkspaceProps) {
   const [selectedMeetingId, setSelectedMeetingId] = useState<string>('');
-  
+  const [linkCopied, setLinkCopied] = useState(false);
+  const [localNotes, setLocalNotes] = useState<string>('');
+
   // New Meeting form states
   const [isCreating, setIsCreating] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [newDate, setNewDate] = useState(new Date().toISOString().split('T')[0]);
   const [newTime, setNewTime] = useState('10:00');
   const [newAttendees, setNewAttendees] = useState('');
+  const [newMeetingLink, setNewMeetingLink] = useState('');
 
-  // Active meeting states
+  // Active meeting - find directly from meetings array
   const activeMeeting = meetings.find((m) => m.id === selectedMeetingId);
 
-  // Set default selected meeting
+  // Sync localNotes when meeting selection changes or meetings update externally
+  useEffect(() => {
+    if (activeMeeting) {
+      setLocalNotes(activeMeeting.notes);
+    }
+  }, [selectedMeetingId, activeMeeting?.id, activeMeeting?.notes]);
+
   useEffect(() => {
     if (!selectedMeetingId && meetings.length > 0) {
       setSelectedMeetingId(meetings[0].id);
     }
   }, [meetings, selectedMeetingId]);
+
+  // Parse actions directly from localNotes for real-time sync
+  const activeActions = useMemo(() => {
+    if (!localNotes) return [];
+    const lines = localNotes.split('\n');
+    const actions: { text: string; completed: boolean; isSynced: boolean }[] = [];
+
+    lines.forEach((line) => {
+      const match = line.match(/^-\s*\[\s*([xX ]?)\s*\]\s*(.*)$/);
+      if (match) {
+        const noteCompleted = match[1].trim().toLowerCase() === 'x';
+        const text = match[2].trim();
+        if (text) {
+          const syncedTodo = todos.find((t) => t.title.toLowerCase() === text.toLowerCase());
+          const isSynced = !!syncedTodo;
+          // If synced, use the todo's actual completion status; otherwise use the note's status
+          const completed = isSynced ? syncedTodo!.completed : noteCompleted;
+          actions.push({ text, completed, isSynced });
+        }
+      }
+    });
+
+    return actions;
+  }, [localNotes, todos]);
 
   const handleCreateMeeting = (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,46 +83,38 @@ export function MeetingWorkspace({
       newDate,
       newTime,
       newAttendees,
-      "# Agenda\n- Discuss project requirements\n- Formulate timelines\n\n# Action Items\n- [ ] Assign development tasks\n- [ ] Establish compiler gates\n- [ ] Design high-fidelity layout assets"
+      "# Agenda\n- Discuss project requirements\n- Formulate timelines\n\n# Action Items\n- [ ] Assign development tasks\n- [ ] Establish compiler gates\n- [ ] Design high-fidelity layout assets",
+      newMeetingLink
     );
 
     setNewTitle('');
     setNewAttendees('');
+    setNewMeetingLink('');
     setIsCreating(false);
   };
 
-  // Extract action items from notes (lines matching - [ ] or - [x])
-  const getParsedActions = (notesText: string) => {
-    if (!notesText) return [];
-    const lines = notesText.split('\n');
-    const actions: { text: string; completed: boolean; isSynced: boolean }[] = [];
-
-    lines.forEach((line) => {
-      const match = line.match(/^-\s*\[\s*([xX ]?)\s*\]\s*(.*)$/);
-      if (match) {
-        const completed = match[1].trim().toLowerCase() === 'x';
-        const text = match[2].trim();
-        if (text) {
-          // Check if this task is already synced in the global todo list
-          const isSynced = todos.some((t) => t.title.toLowerCase() === text.toLowerCase());
-          actions.push({ text, completed, isSynced });
-        }
-      }
-    });
-
-    return actions;
+  const handleSyncTask = (title: string) => {
+    onAddTodo(title, `Extracted from Meeting: ${activeMeeting?.title}`, 'medium', null, null);
   };
 
-  const activeActions = activeMeeting ? getParsedActions(activeMeeting.notes) : [];
+  const handleCopyLink = () => {
+    if (activeMeeting?.meetingLink) {
+      navigator.clipboard.writeText(activeMeeting.meetingLink);
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2000);
+    }
+  };
 
-  const handleSyncTask = (title: string) => {
-    // Add task to main board
-    onAddTodo(title, `Extracted from Meeting: ${activeMeeting?.title}`, 'medium', null, null);
+  const handleNotesChange = (value: string) => {
+    setLocalNotes(value);
+    if (activeMeeting) {
+      onUpdateMeeting(activeMeeting.id, { notes: value });
+    }
   };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start animate-scale-in">
-      {/* Sidebar: Meetings Browser (col-span-4) */}
+      {/* Sidebar: Meetings Browser */}
       <div className="lg:col-span-4 bg-[var(--card-bg)] border border-[var(--border-color)]/60 rounded-[18px] p-5 space-y-4">
         <div className="flex items-center justify-between">
           <h4 className="text-[13px] font-bold uppercase tracking-wider text-[var(--muted-text)]">Scheduled Meetings</h4>
@@ -102,7 +127,7 @@ export function MeetingWorkspace({
           </button>
         </div>
 
-        {isCreating ? (
+        {isCreating && (
           <form onSubmit={handleCreateMeeting} className="space-y-3 p-3 border border-[var(--border-color)]/60 rounded-xl bg-[var(--background)]/35 animate-slide-in">
             <div className="space-y-1">
               <label className="text-[10px] uppercase font-bold text-[var(--muted-text)]">Title</label>
@@ -145,6 +170,16 @@ export function MeetingWorkspace({
                 className="w-full text-xs p-2 border border-[var(--border-color)]/60 rounded-lg bg-[var(--card-bg)] text-[var(--foreground)] focus:outline-none"
               />
             </div>
+            <div className="space-y-1">
+              <label className="text-[10px] uppercase font-bold text-[var(--muted-text)]">Meeting Link</label>
+              <input
+                type="url"
+                value={newMeetingLink}
+                onChange={(e) => setNewMeetingLink(e.target.value)}
+                placeholder="https://meet.google.com/..."
+                className="w-full text-xs p-2 border border-[var(--border-color)]/60 rounded-lg bg-[var(--card-bg)] text-[var(--foreground)] placeholder-[var(--muted-text)]/40 focus:outline-none"
+              />
+            </div>
             <div className="flex gap-2 pt-1">
               <button
                 type="submit"
@@ -161,7 +196,7 @@ export function MeetingWorkspace({
               </button>
             </div>
           </form>
-        ) : null}
+        )}
 
         <div className="space-y-2 max-h-96 overflow-y-auto scrollbar-hide">
           {meetings.length === 0 ? (
@@ -191,6 +226,12 @@ export function MeetingWorkspace({
                       <Clock size={10} />
                       {m.time}
                     </span>
+                    {m.meetingLink && (
+                      <span className="flex items-center gap-0.5 text-[var(--accent)]">
+                        <Link2 size={9} />
+                        <span>Link</span>
+                      </span>
+                    )}
                   </div>
                 </div>
                 <button
@@ -211,112 +252,160 @@ export function MeetingWorkspace({
         </div>
       </div>
 
-      {/* Editor & Action items board (col-span-8) */}
-      <div className="lg:col-span-8 space-y-6">
+      {/* Editor & Action items board */}
+      <div className="lg:col-span-8 space-y-4">
         {activeMeeting ? (
-          <div className="bg-[var(--card-bg)] border border-[var(--border-color)]/60 rounded-[18px] p-5 space-y-5">
-            {/* Header info */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-[var(--border-color)]/30 pb-4 gap-3">
-              <div className="space-y-1">
-                <h3 className="text-[16px] font-bold text-[var(--foreground)]">{activeMeeting.title}</h3>
-                <div className="flex flex-wrap items-center gap-3 text-xs text-[var(--muted-text)]">
-                  <span className="flex items-center gap-1">
-                    <Calendar size={13} />
-                    {activeMeeting.date} at {activeMeeting.time}
-                  </span>
-                  {activeMeeting.attendees && (
+          <>
+            {/* Meeting Link Taskbar */}
+            <div className="bg-[var(--card-bg)] border border-[var(--border-color)]/60 rounded-2xl p-3 flex items-center gap-3">
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                <div className="flex items-center justify-center w-8 h-8 rounded-xl bg-[var(--accent)]/10 flex-shrink-0">
+                  <Link2 size={14} className="text-[var(--accent)]" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <input
+                    type="url"
+                    value={activeMeeting.meetingLink || ''}
+                    onChange={(e) => onUpdateMeeting(activeMeeting.id, { meetingLink: e.target.value })}
+                    placeholder="Paste meeting link (Google Meet, Zoom, Teams...)"
+                    className="w-full text-[13px] bg-transparent text-[var(--foreground)] placeholder-[var(--muted-text)]/40 focus:outline-none truncate"
+                  />
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-1.5 flex-shrink-0">
+                {activeMeeting.meetingLink && (
+                  <>
+                    <button
+                      onClick={handleCopyLink}
+                      className={cn(
+                        "flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold rounded-xl transition-all btn-pressable cursor-pointer",
+                        linkCopied 
+                          ? "bg-green-500/10 text-green-500 border border-green-500/20" 
+                          : "bg-white/5 text-white/50 border border-white/[0.06] hover:bg-white/[0.08] hover:text-white/70"
+                      )}
+                    >
+                      {linkCopied ? <Check size={12} /> : <Copy size={12} />}
+                      {linkCopied ? 'Copied' : 'Copy'}
+                    </button>
+                    <a
+                      href={activeMeeting.meetingLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold text-white bg-[var(--accent)] hover:bg-[var(--accent-focus)] rounded-xl transition-colors cursor-pointer"
+                    >
+                      <ExternalLink size={12} />
+                      Join
+                    </a>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Main meeting content */}
+            <div className="bg-[var(--card-bg)] border border-[var(--border-color)]/60 rounded-[18px] p-5 space-y-5">
+              {/* Header info */}
+              <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-[var(--border-color)]/30 pb-4 gap-3">
+                <div className="space-y-1">
+                  <h3 className="text-[16px] font-bold text-[var(--foreground)]">{activeMeeting.title}</h3>
+                  <div className="flex flex-wrap items-center gap-3 text-xs text-[var(--muted-text)]">
                     <span className="flex items-center gap-1">
-                      <Users size={13} />
-                      {activeMeeting.attendees}
+                      <Calendar size={13} />
+                      {activeMeeting.date} at {activeMeeting.time}
                     </span>
-                  )}
-                </div>
-              </div>
-
-              {/* PPT Launcher Button */}
-              <button
-                onClick={() => onLaunchPresentation(activeMeeting.title, activeMeeting.notes)}
-                className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-[var(--accent)] hover:bg-[var(--accent-focus)] rounded-full transition-colors cursor-pointer self-start md:self-auto"
-              >
-                <Presentation size={13} />
-                <span>Run Presentation Slides</span>
-              </button>
-            </div>
-
-            {/* Split notes and parse check columns */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              {/* Note Editor */}
-              <div className="space-y-2">
-                <div className="flex items-center gap-1.5 text-[var(--muted-text)] font-semibold">
-                  <FileText size={13} />
-                  <span className="text-[10px] uppercase tracking-wider">Minutes & Agendas</span>
-                </div>
-                <textarea
-                  value={activeMeeting.notes}
-                  onChange={(e) => onUpdateMeeting(activeMeeting.id, { notes: e.target.value })}
-                  placeholder="Record meeting logs here..."
-                  className="w-full h-80 text-xs p-3.5 border border-[var(--border-color)]/60 rounded-xl bg-[var(--background)]/35 text-[var(--foreground)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]/30 resize-none font-mono"
-                />
-              </div>
-
-              {/* Action Item parsing board */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-[var(--muted-text)] font-semibold">
-                  <div className="flex items-center gap-1.5">
-                    <CheckCircle2 size={13} className="text-green-500" />
-                    <span className="text-[10px] uppercase tracking-wider">Real-time Task Extractor</span>
+                    {activeMeeting.attendees && (
+                      <span className="flex items-center gap-1">
+                        <Users size={13} />
+                        {activeMeeting.attendees}
+                      </span>
+                    )}
                   </div>
-                  <span className="text-[10px] font-bold text-[var(--muted-text)] bg-black/10 dark:bg-white/10 px-2 py-0.5 rounded-full">
-                    {activeActions.length} actions
-                  </span>
                 </div>
 
-                <div className="border border-[var(--border-color)]/60 rounded-xl p-4 h-80 bg-[var(--background)]/35 overflow-y-auto space-y-2.5">
-                  {activeActions.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-full text-center space-y-2 opacity-65 p-4">
-                      <AlertCircle size={18} className="text-[var(--muted-text)]" />
-                      <p className="text-[11px] text-[var(--muted-text)] max-w-[30ch] leading-relaxed">
-                        No active checklist items found. Type <code className="bg-black/10 dark:bg-white/10 px-1 py-0.5 rounded font-mono">- [ ] task title</code> in your notes to parse one!
-                      </p>
+                <button
+                  onClick={() => onLaunchPresentation(activeMeeting.title, localNotes)}
+                  className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-[var(--accent)] hover:bg-[var(--accent-focus)] rounded-full transition-colors cursor-pointer self-start md:self-auto"
+                >
+                  <Presentation size={13} />
+                  <span>Run Presentation Slides</span>
+                </button>
+              </div>
+
+              {/* Notes and action items */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {/* Note Editor */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-1.5 text-[var(--muted-text)] font-semibold">
+                    <FileText size={13} />
+                    <span className="text-[10px] uppercase tracking-wider">Minutes & Agendas</span>
+                  </div>
+                  <textarea
+                    value={localNotes}
+                    onChange={(e) => handleNotesChange(e.target.value)}
+                    placeholder="Record meeting logs here...&#10;&#10;Use - [ ] task name to create actionable items"
+                    className="w-full h-80 text-xs p-3.5 border border-[var(--border-color)]/60 rounded-xl bg-[var(--background)]/35 text-[var(--foreground)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]/30 resize-none font-mono"
+                  />
+                </div>
+
+                {/* Action Item parsing board */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-[var(--muted-text)] font-semibold">
+                    <div className="flex items-center gap-1.5">
+                      <CheckCircle2 size={13} className="text-green-500" />
+                      <span className="text-[10px] uppercase tracking-wider">Real-time Task Extractor</span>
                     </div>
-                  ) : (
-                    activeActions.map((action, idx) => (
-                      <div
-                        key={idx}
-                        className="flex items-center justify-between gap-3 p-2.5 bg-[var(--card-bg)] border border-[var(--border-color)]/50 rounded-xl transition-colors hover:border-[var(--border-color)]"
-                      >
-                        <div className="flex items-center gap-2 truncate">
-                          {action.completed ? (
-                            <CheckCircle2 size={13} className="text-green-500 flex-shrink-0" />
-                          ) : (
-                            <Circle size={13} className="text-[var(--muted-text)] flex-shrink-0" />
-                          )}
-                          <span className={cn(
-                            "text-[11px] font-medium leading-normal truncate",
-                            action.completed && "line-through text-[var(--muted-text)]"
-                          )}>
-                            {action.text}
-                          </span>
-                        </div>
-                        {action.isSynced ? (
-                          <span className="text-[9px] font-bold text-green-500 bg-green-500/10 px-2 py-0.5 rounded-full flex-shrink-0">
-                            Synced
-                          </span>
-                        ) : (
-                          <button
-                            onClick={() => handleSyncTask(action.text)}
-                            className="text-[9px] font-bold text-white bg-[var(--accent)] hover:bg-[var(--accent-focus)] px-2 py-0.5 rounded-full transition-colors cursor-pointer flex-shrink-0"
-                          >
-                            Sync to Board
-                          </button>
-                        )}
+                    <span className="text-[10px] font-bold text-[var(--muted-text)] bg-black/10 dark:bg-white/10 px-2 py-0.5 rounded-full">
+                      {activeActions.length} actions
+                    </span>
+                  </div>
+
+                  <div className="border border-[var(--border-color)]/60 rounded-xl p-4 h-80 bg-[var(--background)]/35 overflow-y-auto space-y-2.5">
+                    {activeActions.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center h-full text-center space-y-2 opacity-65 p-4">
+                        <AlertCircle size={18} className="text-[var(--muted-text)]" />
+                        <p className="text-[11px] text-[var(--muted-text)] max-w-[30ch] leading-relaxed">
+                          No active checklist items found. Type <code className="bg-black/10 dark:bg-white/10 px-1 py-0.5 rounded font-mono">- [ ] task title</code> in your notes to parse one!
+                        </p>
                       </div>
-                    ))
-                  )}
+                    ) : (
+                      activeActions.map((action, idx) => (
+                        <div
+                          key={`${action.text}-${idx}`}
+                          className="flex items-center justify-between gap-3 p-2.5 bg-[var(--card-bg)] border border-[var(--border-color)]/50 rounded-xl transition-colors hover:border-[var(--border-color)]"
+                        >
+                          <div className="flex items-center gap-2 truncate">
+                            {action.completed ? (
+                              <CheckCircle2 size={13} className="text-green-500 flex-shrink-0" />
+                            ) : (
+                              <Circle size={13} className="text-[var(--muted-text)] flex-shrink-0" />
+                            )}
+                            <span className={cn(
+                              "text-[11px] font-medium leading-normal truncate",
+                              action.completed && "line-through text-[var(--muted-text)]"
+                            )}>
+                              {action.text}
+                            </span>
+                          </div>
+                          {action.isSynced ? (
+                            <span className="text-[9px] font-bold text-green-500 bg-green-500/10 px-2 py-0.5 rounded-full flex-shrink-0">
+                              Synced
+                            </span>
+                          ) : (
+                            <button
+                              onClick={() => handleSyncTask(action.text)}
+                              className="text-[9px] font-bold text-white bg-[var(--accent)] hover:bg-[var(--accent-focus)] px-2 py-0.5 rounded-full transition-colors cursor-pointer flex-shrink-0"
+                            >
+                              Sync to Board
+                            </button>
+                          )}
+                        </div>
+                      ))
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          </>
         ) : (
           <div className="bg-[var(--card-bg)] border border-[var(--border-color)]/60 rounded-[18px] p-20 text-center space-y-4">
             <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-[var(--background)]">

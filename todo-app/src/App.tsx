@@ -208,7 +208,7 @@ function App() {
               <div className="flex items-center justify-center w-8 h-8 rounded-full bg-[var(--accent)] text-white">
                 <ListTodo size={16} />
               </div>
-              <h1 className="text-lg font-semibold tracking-tight-display text-[var(--foreground)]">FocusBoard</h1>
+              <h1 className="text-lg font-semibold tracking-tight-display text-[var(--foreground)]">TaskFlow</h1>
             </div>
 
             <div className="flex items-center gap-2">
@@ -291,7 +291,7 @@ function App() {
                   ref={heroSubtitleRef}
                   className="text-[17px] text-[var(--muted-text)] leading-relaxed max-w-[50ch] opacity-0"
                 >
-                  FocusBoard combines the Eisenhower priority matrix, intent-driven focus timers, and bento-grid analytics to clear your schedule and boost daily consistency.
+                  TaskFlow combines the Eisenhower priority matrix, intent-driven focus timers, and bento-grid analytics to clear your schedule and boost daily consistency.
                 </p>
                 
                 <div ref={heroCtaRef} className="flex flex-wrap items-center gap-3 pt-2 opacity-0">
@@ -394,7 +394,7 @@ function App() {
                   How high-growth teams execute
                 </h3>
                 <p className="text-[14px] text-[var(--muted-text)] mt-1.5">
-                  FocusBoard is integrated into the daily sprint layouts of lead engineers, designers, and managers worldwide.
+                  TaskFlow is integrated into the daily sprint layouts of lead engineers, designers, and managers worldwide.
                 </p>
               </div>
 
@@ -496,7 +496,7 @@ function App() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="p-5 border border-[var(--border-color)]/60 rounded-[18px] bg-[var(--card-bg)]/40 backdrop-blur-sm flex flex-col justify-between space-y-4">
                   <p className="text-[13px] italic text-[var(--muted-text)] leading-relaxed">
-                    "FocusBoard completely simplified our engineering workflows. Keeping our backlog mapped to Eisenhower priority quadrants helped us ship our v2 product 3 weeks ahead of schedule."
+                    "TaskFlow completely simplified our engineering workflows. Keeping our backlog mapped to Eisenhower priority quadrants helped us ship our v2 product 3 weeks ahead of schedule."
                   </p>
                   <div>
                     <h5 className="text-[12px] font-bold text-[var(--foreground)]">Marcus Aurelius</h5>
@@ -506,7 +506,7 @@ function App() {
 
                 <div className="p-5 border border-[var(--border-color)]/60 rounded-[18px] bg-[var(--card-bg)]/40 backdrop-blur-sm flex flex-col justify-between space-y-4">
                   <p className="text-[13px] italic text-[var(--muted-text)] leading-relaxed">
-                    "I've tried every planner out there. FocusBoard's combination of local target timing and minimalist aesthetics is the only interface that keeps me focused for long stretches without clutter."
+                    "I've tried every planner out there. TaskFlow's combination of local target timing and minimalist aesthetics is the only interface that keeps me focused for long stretches without clutter."
                   </p>
                   <div>
                     <h5 className="text-[12px] font-bold text-[var(--foreground)]">Elena Rostova</h5>

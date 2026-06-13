@@ -30,6 +30,7 @@ export interface Meeting {
   time: string;
   attendees: string;
   notes: string;
+  meetingLink: string;
   createdAt: number;
 }
 

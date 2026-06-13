@@ -17,7 +17,7 @@ interface SlideData {
   type: 'welcome' | 'list' | 'conclusion';
 }
 
-export function PresentationExporter({ todos, meetingTitle = "FocusBoard Agenda", meetingNotes = "", onClose }: PresentationExporterProps) {
+export function PresentationExporter({ todos, meetingTitle = "TaskFlow Agenda", meetingNotes = "", onClose }: PresentationExporterProps) {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
@@ -32,7 +32,7 @@ export function PresentationExporter({ todos, meetingTitle = "FocusBoard Agenda"
       title: meetingTitle,
       subtitle: "Sprint Planning & Backlog Synchronization Agenda",
       content: [
-        "FocusBoard automated presentation slide deck.",
+        "TaskFlow automated presentation slide deck.",
         "Facilitating productive reviews, sprint gates, and action alignments.",
         `Date: ${new Date().toLocaleDateString()} | Compiled automatically`
       ],
@@ -96,7 +96,7 @@ export function PresentationExporter({ todos, meetingTitle = "FocusBoard Agenda"
     // Slide 5: Conclusion
     compiledSlides.push({
       title: "Align & Execute",
-      subtitle: "FocusBoard Productivity Engine",
+      subtitle: "TaskFlow Productivity Engine",
       content: [
         "Time-boxed sprints boost completion rate by 40%.",
         "Action tracking eliminates decision backlog.",

@@ -321,7 +321,7 @@ export function useTodos() {
     setState((prev) => ({ ...prev, userPersona }));
   }, [setState]);
 
-  const addMeeting = useCallback((title: string, date: string, time: string, attendees: string, notes: string) => {
+  const addMeeting = useCallback((title: string, date: string, time: string, attendees: string, notes: string, meetingLink: string = '') => {
     const newMeeting: Meeting = {
       id: generateId(),
       title,
@@ -329,6 +329,7 @@ export function useTodos() {
       time,
       attendees,
       notes,
+      meetingLink,
       createdAt: Date.now(),
     };
     setState((prev) => ({
