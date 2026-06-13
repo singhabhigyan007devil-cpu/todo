@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useMemo, useCallback } from 'react';
 import { useLocalStorage } from './useLocalStorage';
 import { generateId } from '../lib/utils';
 import type { Todo, Category, Subtask, Priority, FilterType, TodoStats, AppState } from '../types/todo';

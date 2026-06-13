@@ -59,9 +59,9 @@ export const PRIORITY_LABELS: Record<Priority, string> = {
 };
 
 export const PRIORITY_COLORS: Record<Priority, string> = {
-  low: 'bg-green-900/40 text-green-400',
-  medium: 'bg-yellow-900/40 text-yellow-400',
-  high: 'bg-red-900/40 text-red-400',
+  low: 'bg-green-900/40 text-green-400 ring-1 ring-green-700/30',
+  medium: 'bg-amber-900/40 text-amber-400 ring-1 ring-amber-700/30',
+  high: 'bg-red-900/40 text-red-400 ring-1 ring-red-700/30',
 };
 
 export const PRIORITY_ICON_COLORS: Record<Priority, string> = {

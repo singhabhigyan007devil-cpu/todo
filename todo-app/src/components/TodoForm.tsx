@@ -19,136 +19,132 @@ export function TodoForm({ categories, onAdd }: TodoFormProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
-    onAdd(
-      title.trim(),
-      description.trim(),
-      priority,
-      categoryId,
-      dueDate ? new Date(dueDate).getTime() : null
-    );
-    setTitle('');
-    setDescription('');
-    setPriority('medium');
-    setCategoryId(null);
-    setDueDate('');
+    onAdd(title.trim(), description.trim(), priority, categoryId, dueDate ? new Date(dueDate).getTime() : null);
+    setTitle(''); 
+    setDescription(''); 
+    setPriority('medium'); 
+    setCategoryId(null); 
+    setDueDate(''); 
     setIsOpen(false);
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Escape') setIsOpen(false);
+  const handleKeyDown = (e: React.KeyboardEvent) => { 
+    if (e.key === 'Escape') setIsOpen(false); 
   };
 
   return (
-    <div className="animate-fade-in">
+    <div className="animate-fade-in w-full">
       {!isOpen ? (
-        <button
-          onClick={() => setIsOpen(true)}
-          className="w-full flex items-center gap-2 px-4 py-3 rounded-xl border-2 border-dashed border-slate-600/50 text-slate-400 hover:border-primary-500/50 hover:text-primary-400 hover:bg-primary-500/5 transition-all duration-200"
+        <button 
+          onClick={() => setIsOpen(true)} 
+          className="w-full flex items-center justify-center gap-2 px-4 py-3.5 rounded-xl border border-dashed border-[var(--border-color)] text-[var(--muted-text)] hover:border-[var(--accent)]/40 hover:text-[var(--accent)] hover:bg-[var(--accent)]/5 transition-all duration-200 btn-pressable cursor-pointer"
         >
-          <Plus size={20} />
-          <span className="text-sm font-medium">Add a new task</span>
+          <Plus size={16} />
+          <span className="text-[14px] font-normal">Add a new task</span>
         </button>
       ) : (
-        <form
-          onSubmit={handleSubmit}
-          onKeyDown={handleKeyDown}
-          className="bg-slate-800/80 rounded-xl border border-slate-700/60 shadow-lg p-4 space-y-3 backdrop-blur-sm"
+        <form 
+          onSubmit={handleSubmit} 
+          onKeyDown={handleKeyDown} 
+          className="bg-[var(--card-bg)] rounded-[18px] border border-[var(--border-color)] p-5 space-y-4 animate-scale-in"
         >
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-slate-200">New Task</h3>
-            <button
-              type="button"
-              onClick={() => setIsOpen(false)}
-              className="p-1 text-slate-500 hover:text-slate-300 transition-colors"
+            <h3 className="text-[14px] font-semibold text-[var(--foreground)]">New Task</h3>
+            <button 
+              type="button" 
+              onClick={() => setIsOpen(false)} 
+              className="p-1 rounded-full text-[var(--muted-text)] hover:text-[var(--foreground)] hover:bg-black/5 dark:hover:bg-white/5 transition-all btn-pressable"
             >
-              <X size={16} />
+              <X size={15} />
             </button>
           </div>
 
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="What needs to be done?"
-            className="w-full px-3 py-2 text-sm border border-slate-600 rounded-xl bg-slate-700/50 text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-transparent"
-            autoFocus
-            required
-          />
+          <div className="space-y-3">
+            <input 
+              type="text" 
+              value={title} 
+              onChange={(e) => setTitle(e.target.value)} 
+              placeholder="What needs to be done?" 
+              className="w-full px-4 py-2.5 text-[15px] border border-[var(--border-color)] rounded-xl bg-[var(--background)] text-[var(--foreground)] placeholder-[var(--muted-text)]/50 focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/20 focus:border-[var(--accent)] transition-all" 
+              autoFocus 
+              required 
+            />
+            <textarea 
+              value={description} 
+              onChange={(e) => setDescription(e.target.value)} 
+              placeholder="Add a description (optional)" 
+              rows={2} 
+              className="w-full px-4 py-2.5 text-[13px] border border-[var(--border-color)] rounded-xl bg-[var(--background)] text-[var(--foreground)] placeholder-[var(--muted-text)]/50 focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/20 focus:border-[var(--accent)] resize-none transition-all" 
+            />
+          </div>
 
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Add a description (optional)"
-            rows={2}
-            className="w-full px-3 py-2 text-sm border border-slate-600 rounded-xl bg-slate-700/50 text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-transparent resize-none"
-          />
-
-          <div className="flex flex-wrap gap-3">
-            <div className="flex-1 min-w-[140px]">
-              <label className="block text-xs font-medium text-slate-400 mb-1">Priority</label>
-              <div className="flex gap-1">
-                {(['low', 'medium', 'high'] as Priority[]).map((p) => (
-                  <button
-                    key={p}
-                    type="button"
-                    onClick={() => setPriority(p)}
-                    className={cn(
-                      'flex items-center gap-1 px-2.5 py-1.5 rounded text-xs font-medium transition-all',
-                      priority === p
-                        ? p === 'high'
-                          ? 'bg-red-900/30 text-red-400 ring-1 ring-red-500/50'
-                          : p === 'medium'
-                          ? 'bg-yellow-900/30 text-yellow-400 ring-1 ring-yellow-500/50'
-                          : 'bg-green-900/30 text-green-400 ring-1 ring-green-500/50'
-                        : 'bg-slate-700/50 text-slate-400 hover:bg-slate-700'
-                    )}
-                  >
-                    <AlertCircle size={12} />
-                    {p.charAt(0).toUpperCase() + p.slice(1)}
-                  </button>
-                ))}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-[11px] font-semibold uppercase tracking-wider text-[var(--muted-text)] mb-2">Priority</label>
+              <div className="flex gap-1.5">
+                {(['low', 'medium', 'high'] as Priority[]).map((p) => {
+                  const isSelected = priority === p;
+                  return (
+                    <button 
+                      key={p} 
+                      type="button" 
+                      onClick={() => setPriority(p)}
+                      className={cn(
+                        'flex-1 flex items-center justify-center gap-1 py-1.5 rounded-full text-[12px] font-normal border transition-all btn-pressable cursor-pointer', 
+                        isSelected
+                          ? p === 'high' 
+                            ? 'bg-red-500/10 text-red-500 border-red-500/20 font-semibold' 
+                            : p === 'medium' 
+                              ? 'bg-amber-500/10 text-amber-500 border-amber-500/20 font-semibold' 
+                              : 'bg-green-500/10 text-green-500 border-green-500/20 font-semibold'
+                          : 'bg-black/5 dark:bg-white/5 text-[var(--muted-text)] border-transparent hover:bg-black/10 dark:hover:bg-white/10'
+                      )}
+                    >
+                      <AlertCircle size={11} />
+                      {p.charAt(0).toUpperCase() + p.slice(1)}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
-            <div className="flex-1 min-w-[140px]">
-              <label className="block text-xs font-medium text-slate-400 mb-1">Category</label>
-              <select
-                value={categoryId || ''}
-                onChange={(e) => setCategoryId(e.target.value || null)}
-                className="w-full px-2.5 py-1.5 text-xs border border-slate-600 rounded-xl bg-slate-700/50 text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500/50"
+            <div>
+              <label className="block text-[11px] font-semibold uppercase tracking-wider text-[var(--muted-text)] mb-2">Category</label>
+              <select 
+                value={categoryId || ''} 
+                onChange={(e) => setCategoryId(e.target.value || null)} 
+                className="w-full px-3 py-1.5 text-[12px] border border-[var(--border-color)] rounded-full bg-[var(--card-bg)] text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/20 cursor-pointer"
               >
                 <option value="">No category</option>
-                {categories.map((c) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
+                {categories.map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
               </select>
             </div>
 
-            <div className="flex-1 min-w-[140px]">
-              <label className="block text-xs font-medium text-slate-400 mb-1">Due Date</label>
+            <div>
+              <label className="block text-[11px] font-semibold uppercase tracking-wider text-[var(--muted-text)] mb-2">Due Date</label>
               <div className="relative">
-                <Calendar size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500" />
-                <input
-                  type="date"
-                  value={dueDate}
-                  onChange={(e) => setDueDate(e.target.value)}
-                  className="w-full pl-8 pr-2.5 py-1.5 text-xs border border-slate-600 rounded-xl bg-slate-700/50 text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500/50"
+                <Calendar size={13} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--muted-text)]" />
+                <input 
+                  type="date" 
+                  value={dueDate} 
+                  onChange={(e) => setDueDate(e.target.value)} 
+                  className="w-full pl-9 pr-3.5 py-1.5 text-[12px] border border-[var(--border-color)] rounded-full bg-[var(--card-bg)] text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/20 cursor-pointer" 
                 />
               </div>
             </div>
           </div>
 
-          <div className="flex justify-end gap-2 pt-1">
-            <button
-              type="button"
-              onClick={() => setIsOpen(false)}
-              className="px-3 py-1.5 text-xs font-medium text-slate-300 bg-slate-700/50 rounded-xl hover:bg-slate-700 transition-colors"
+          <div className="flex justify-end gap-2 pt-2 border-t border-[var(--border-color)]/30">
+            <button 
+              type="button" 
+              onClick={() => setIsOpen(false)} 
+              className="px-4 py-1.5 text-xs font-normal text-[var(--foreground)] bg-black/5 dark:bg-white/5 rounded-full hover:bg-black/10 dark:hover:bg-white/10 transition-colors btn-pressable cursor-pointer"
             >
               Cancel
             </button>
-            <button
-              type="submit"
-              className="px-4 py-1.5 text-xs font-medium text-white bg-gradient-to-r from-primary-600 to-primary-500 rounded-xl hover:from-primary-500 hover:to-primary-400 transition-all shadow-sm"
+            <button 
+              type="submit" 
+              className="px-5 py-1.5 text-xs font-medium text-white bg-[var(--accent)] rounded-full hover:bg-[var(--accent-focus)] transition-all btn-pressable cursor-pointer"
             >
               Add Task
             </button>
