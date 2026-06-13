@@ -26,6 +26,8 @@ import { CreativeWorkspace } from './components/CreativeWorkspace';
 import { LifestyleWorkspace } from './components/LifestyleWorkspace';
 import { cn } from './lib/utils';
 
+const HERO_WORDS = ['The', 'interface', 'for', 'clear', 'minds.'];
+
 function App() {
   const {
     todos, allTodos, categories, stats, filter, selectedCategory, searchQuery, sortBy, sortOrder,
@@ -66,6 +68,15 @@ function App() {
   const landingHeroRef = useRef<HTMLDivElement>(null);
   const mainWorkspaceRef = useRef<HTMLDivElement>(null);
 
+  // Hero animation refs
+  const heroBadgeRef = useRef<HTMLSpanElement>(null);
+  const heroWordRefs = useRef<HTMLSpanElement[]>([]);
+  const heroSubtitleRef = useRef<HTMLParagraphElement>(null);
+  const heroCtaRef = useRef<HTMLDivElement>(null);
+  const heroCardRef = useRef<HTMLDivElement>(null);
+  const heroMeshRef = useRef<HTMLDivElement>(null);
+  const heroScrollRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     document.documentElement.classList.add('dark');
     localStorage.setItem('theme', 'dark');
@@ -81,10 +92,61 @@ function App() {
 
   useEffect(() => {
     if (!workspaceActive && landingHeroRef.current) {
-      gsap.fromTo(landingHeroRef.current, 
-        { opacity: 0, y: 30 }, 
-        { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out' }
-      );
+      const ctx = gsap.context(() => {
+        const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
+
+        // Mesh gradient entrance
+        if (heroMeshRef.current) {
+          tl.fromTo(heroMeshRef.current, { opacity: 0, scale: 0.8 }, { opacity: 1, scale: 1, duration: 1.4 }, 0);
+          // Slow continuous rotation for mesh blobs
+          gsap.to(heroMeshRef.current, { rotation: 360, duration: 80, repeat: -1, ease: 'none' });
+        }
+
+        // Badge
+        if (heroBadgeRef.current) {
+          tl.fromTo(heroBadgeRef.current, { y: 12, opacity: 0, scale: 0.95 }, { y: 0, opacity: 1, scale: 1, duration: 0.5 }, 0.3);
+        }
+
+        // Headline words stagger
+        tl.fromTo(heroWordRefs.current, 
+          { y: 40, opacity: 0, rotateX: 20, filter: 'blur(8px)' }, 
+          { y: 0, opacity: 1, rotateX: 0, filter: 'blur(0px)', stagger: 0.1, duration: 0.7 }, 
+          0.5
+        );
+
+        // Subtitle
+        if (heroSubtitleRef.current) {
+          tl.fromTo(heroSubtitleRef.current, { y: 18, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5 }, 1.1);
+        }
+
+        // CTA buttons
+        if (heroCtaRef.current) {
+          tl.fromTo(heroCtaRef.current, { y: 14, opacity: 0, scale: 0.96 }, { y: 0, opacity: 1, scale: 1, duration: 0.45 }, 1.3);
+        }
+
+        // Product preview card
+        if (heroCardRef.current) {
+          tl.fromTo(heroCardRef.current, { x: 40, opacity: 0, rotateY: 8 }, { x: 0, opacity: 1, rotateY: 0, duration: 0.7 }, 0.6);
+        }
+
+        // Scroll indicator
+        if (heroScrollRef.current) {
+          tl.fromTo(heroScrollRef.current, { y: 10, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5 }, 1.6);
+        }
+
+        // Word hover interactions
+        heroWordRefs.current.forEach((el) => {
+          if (!el) return;
+          el.addEventListener('mouseenter', () => {
+            gsap.to(el, { y: -3, color: 'var(--accent)', textShadow: '0 0 40px rgba(0,102,204,0.4)', duration: 0.25, ease: 'power2.out' });
+          });
+          el.addEventListener('mouseleave', () => {
+            gsap.to(el, { y: 0, color: 'var(--foreground)', textShadow: 'none', duration: 0.35, ease: 'power2.inOut' });
+          });
+        });
+      }, landingHeroRef);
+
+      return () => ctx.revert();
     } else if (workspaceActive && mainWorkspaceRef.current) {
       gsap.fromTo(mainWorkspaceRef.current, 
         { opacity: 0, y: 25 }, 
@@ -195,18 +257,44 @@ function App() {
           <div ref={landingHeroRef} className="space-y-16 mt-8">
             
             {/* Hero Section */}
-            <section className="max-w-full mx-auto px-6 lg:px-12 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center pt-8 md:pt-16">
-              <div className="lg:col-span-7 space-y-5">
-                <span className="inline-block text-[11px] font-semibold uppercase tracking-wider text-[var(--accent)] bg-[var(--accent)]/10 px-3 py-1 rounded-full">
+            <section className="relative max-w-full mx-auto px-6 lg:px-12 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center pt-8 md:pt-16 overflow-hidden">
+              
+              {/* Mesh Gradient Blobs */}
+              <div ref={heroMeshRef} className="absolute inset-0 pointer-events-none opacity-0" aria-hidden="true">
+                <div className="mesh-blob absolute top-1/4 left-[10%] w-[500px] h-[500px] rounded-full blur-[120px] opacity-25" style={{ background: 'radial-gradient(circle, var(--accent), transparent)' }} />
+                <div className="mesh-blob absolute bottom-1/4 right-[15%] w-[400px] h-[400px] rounded-full blur-[100px] opacity-20" style={{ background: 'radial-gradient(circle, #7928ca, transparent)' }} />
+                <div className="mesh-blob absolute top-[60%] left-[40%] w-[350px] h-[350px] rounded-full blur-[90px] opacity-15" style={{ background: 'radial-gradient(circle, #50e3c2, transparent)' }} />
+              </div>
+
+              <div className="lg:col-span-7 space-y-5 relative z-10">
+                <span 
+                  ref={heroBadgeRef}
+                  className="inline-block text-[11px] font-semibold uppercase tracking-wider text-[var(--accent)] bg-[var(--accent)]/10 px-3 py-1 rounded-full opacity-0"
+                >
                   Minimalist Workspace
                 </span>
-                <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight-hero leading-tight text-[var(--foreground)]">
-                  The interface for clear minds.
+                
+                <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight-hero leading-tight text-[var(--foreground)]" style={{ perspective: '600px' }}>
+                  {HERO_WORDS.map((word, i) => (
+                    <span
+                      key={word}
+                      ref={(el) => { heroWordRefs.current[i] = el; }}
+                      className="inline-block mr-[0.3em] cursor-default opacity-0"
+                      style={{ transformOrigin: 'bottom center' }}
+                    >
+                      {word}
+                    </span>
+                  ))}
                 </h2>
-                <p className="text-[17px] text-[var(--muted-text)] leading-relaxed max-w-[50ch]">
+                
+                <p 
+                  ref={heroSubtitleRef}
+                  className="text-[17px] text-[var(--muted-text)] leading-relaxed max-w-[50ch] opacity-0"
+                >
                   FocusBoard combines the Eisenhower priority matrix, intent-driven focus timers, and bento-grid analytics to clear your schedule and boost daily consistency.
                 </p>
-                <div className="flex flex-wrap items-center gap-3 pt-2">
+                
+                <div ref={heroCtaRef} className="flex flex-wrap items-center gap-3 pt-2 opacity-0">
                   <button 
                     onClick={() => setWorkspaceActive(true)}
                     className="px-5 py-2.5 text-sm font-semibold text-white bg-[var(--accent)] rounded-full hover:bg-[var(--accent-focus)] btn-pressable transition-colors cursor-pointer"
@@ -223,7 +311,10 @@ function App() {
               </div>
               
               {/* Product Preview Card */}
-              <div className="lg:col-span-5 bg-[var(--card-bg)] border border-[var(--border-color)] p-6 rounded-[24px] space-y-4 apple-product-shadow select-none card-3d float-3d">
+              <div 
+                ref={heroCardRef}
+                className="lg:col-span-5 bg-[var(--card-bg)] border border-[var(--border-color)] p-6 rounded-[24px] space-y-4 apple-product-shadow select-none card-3d float-3d relative z-10 opacity-0"
+              >
                 <div className="flex items-center justify-between border-b border-[var(--border-color)]/30 pb-3">
                   <div className="flex items-center gap-2">
                     <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
@@ -246,6 +337,15 @@ function App() {
                     <div className="flex-1 h-3.5 bg-[var(--foreground)]/10 rounded-md w-1/2" />
                   </div>
                 </div>
+              </div>
+
+              {/* Scroll indicator */}
+              <div 
+                ref={heroScrollRef}
+                className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 opacity-0"
+              >
+                <span className="text-[10px] uppercase tracking-widest text-[var(--muted-text)] font-mono">Scroll</span>
+                <div className="w-px h-8 bg-gradient-to-b from-[var(--muted-text)] to-transparent" />
               </div>
             </section>
 
