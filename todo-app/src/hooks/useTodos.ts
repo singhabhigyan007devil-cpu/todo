@@ -56,7 +56,7 @@ const initialState: AppState = {
 };
 
 export function useTodos() {
-  const [state, setState] = useLocalStorage<AppState>('todo-app-state', initialState);
+  const [state, setState] = useLocalStorage<AppState>('todo-app-state-v2', initialState);
 
   const todos = state.todos;
   const categories = state.categories;

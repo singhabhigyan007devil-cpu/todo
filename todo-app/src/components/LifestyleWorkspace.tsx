@@ -206,7 +206,7 @@ export function LifestyleWorkspace({
           {habits.map((habit) => (
             <div
               key={habit.id}
-              className="p-5 border border-[var(--border-color)]/60 rounded-2xl bg-[var(--card-bg)] flex flex-col md:flex-row md:items-center justify-between gap-6 hover:border-[var(--border-color)] transition-all apple-product-shadow card-3d"
+              className="p-5 border border-[var(--border-color)]/60 rounded-2xl bg-[var(--card-bg)] flex flex-col md:flex-row md:items-center justify-between gap-6 hover:border-[var(--border-color)] transition-all apple-product-shadow"
             >
               {/* Habit Details */}
               <div className="space-y-2 max-w-xs">
