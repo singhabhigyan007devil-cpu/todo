@@ -195,7 +195,11 @@ export function useTodos(user: User | null) {
           attendees: m.attendees || '',
           notes: m.notes || '',
           meetingLink: m.meeting_link || '',
-          createdAt: Number(m.created_at)
+          createdAt: Number(m.created_at),
+          pptxName: m.pptx_name || undefined,
+          pptxText: m.pptx_text || undefined,
+          minutes: m.minutes || undefined,
+          extractedTasks: Array.isArray(m.extracted_tasks) ? m.extracted_tasks : undefined
         }));
 
         const mappedHabits: Habit[] = (habitsData || []).map((h) => ({
@@ -295,7 +299,11 @@ export function useTodos(user: User | null) {
           attendees: m.attendees || '',
           notes: m.notes || '',
           meeting_link: m.meetingLink || '',
-          created_at: m.createdAt
+          created_at: m.createdAt,
+          pptx_name: m.pptxName || null,
+          pptx_text: m.pptxText || null,
+          minutes: m.minutes || null,
+          extracted_tasks: m.extractedTasks || []
         }));
         await supabase.from('meetings').upsert(dbMeetings);
       }
@@ -380,7 +388,11 @@ export function useTodos(user: User | null) {
           attendees: m.attendees || '',
           notes: m.notes || '',
           meetingLink: m.meeting_link || '',
-          createdAt: Number(m.created_at)
+          createdAt: Number(m.created_at),
+          pptxName: m.pptx_name || undefined,
+          pptxText: m.pptx_text || undefined,
+          minutes: m.minutes || undefined,
+          extractedTasks: Array.isArray(m.extracted_tasks) ? m.extracted_tasks : undefined
         })),
         habits: (updatedHabits || []).map((h) => ({
           id: h.id,
@@ -894,6 +906,10 @@ export function useTodos(user: User | null) {
       if (updates.attendees !== undefined) dbUpdates.attendees = updates.attendees;
       if (updates.notes !== undefined) dbUpdates.notes = updates.notes;
       if (updates.meetingLink !== undefined) dbUpdates.meeting_link = updates.meetingLink;
+      if (updates.pptxName !== undefined) dbUpdates.pptx_name = updates.pptxName;
+      if (updates.pptxText !== undefined) dbUpdates.pptx_text = updates.pptxText;
+      if (updates.minutes !== undefined) dbUpdates.minutes = updates.minutes;
+      if (updates.extractedTasks !== undefined) dbUpdates.extracted_tasks = updates.extractedTasks;
 
       supabase.from('meetings')
         .update(dbUpdates)

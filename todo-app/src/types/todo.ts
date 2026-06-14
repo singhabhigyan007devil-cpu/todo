@@ -35,7 +35,7 @@ export interface Meeting {
   pptxName?: string;
   pptxText?: string;
   minutes?: string;
-  extractedTasks?: Array<{ id: string; title: string; priority: 'low' | 'medium' | 'high' }>;
+  extractedTasks?: Array<{ id: string; title: string; priority: 'low' | 'medium' | 'high'; synced?: boolean }>;
 }
 
 export interface Subtask {
