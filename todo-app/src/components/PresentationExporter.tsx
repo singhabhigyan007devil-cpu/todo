@@ -42,9 +42,11 @@ export function PresentationExporter({
       const actualSlideTexts = slideChunks.map(c => c.trim()).filter(c => c.length > 0);
 
       // Slide 1: Welcome Slide
+      const welcomeTitle = pptxName ? pptxName.replace(/\.[^/.]+$/, "") : meetingTitle;
+      const welcomeSubtitle = "Executive Presentation Summary & Insights";
       compiledSlides.push({
-        title: pptxName ? pptxName.replace(/\.[^/.]+$/, "") : meetingTitle,
-        subtitle: "Executive Presentation Summary & Insights",
+        title: welcomeTitle,
+        subtitle: welcomeSubtitle,
         content: [
           `Summarized presentation compiled from ${actualSlideTexts.length} source slides.`,
           "Extracted core outlines, highlights, and action items.",
@@ -135,9 +137,11 @@ export function PresentationExporter({
       }
 
       // Slide: Conclusion
+      const conclusionTitle = "Conclusions & Next Steps";
+      const conclusionSubtitle = "Review aligned milestones and exit presentation";
       compiledSlides.push({
-        title: "Conclusions & Next Steps",
-        subtitle: "Review aligned milestones and exit presentation",
+        title: conclusionTitle,
+        subtitle: conclusionSubtitle,
         content: [
           "Validate all extracted timelines and sync with task board.",
           "Distribute synthesized meeting summary to team members.",
