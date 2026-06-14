@@ -1,4 +1,4 @@
-import { Calendar, AlertCircle, Trash2, Circle, CheckCircle2 } from 'lucide-react';
+import { Calendar, AlertCircle, Trash2, Circle } from 'lucide-react';
 import type { Todo, Category } from '../types/todo';
 import { formatDate, isOverdue, isDueToday } from '../lib/utils';
 import { cn } from '../lib/utils';

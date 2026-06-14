@@ -6,7 +6,7 @@ import {
 import {
   SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { BarChart3, ListTodo, ChevronDown, Target, ArrowLeft, Clock, Grid, List, Award, Users2, Sparkles, TrendingUp, Presentation, Palette, Heart } from 'lucide-react';
+import { BarChart3, ListTodo, ChevronDown, Target, ArrowLeft, Clock, Grid, List, Award, Users2, Sparkles, TrendingUp, Presentation, Palette, Heart, Database, Loader2 } from 'lucide-react';
 import gsap from 'gsap';
 import { useTodos } from './hooks/useTodos';
 import { TodoItem } from './components/TodoItem';
@@ -25,18 +25,35 @@ import { PresentationExporter } from './components/PresentationExporter';
 import { CreativeWorkspace } from './components/CreativeWorkspace';
 import { LifestyleWorkspace } from './components/LifestyleWorkspace';
 import { cn } from './lib/utils';
+import { supabase, getSupabaseKeys, updateSupabaseConfig, resetSupabaseConfig } from './lib/supabaseClient';
+import type { User } from '@supabase/supabase-js';
+import { AuthScreen } from './components/AuthScreen';
 
 const HERO_WORDS = ['The', 'interface', 'for', 'clear', 'minds.'];
 
 function App() {
+  const [user, setUser] = useState<User | null>(null);
+  const [guestMode, setGuestMode] = useState(false);
+  const [authInitialized, setAuthInitialized] = useState(false);
+  const [showAuthScreen, setShowAuthScreen] = useState(false);
+  const [showImportPrompt, setShowImportPrompt] = useState(false);
+  const [importing, setImporting] = useState(false);
+
+  // DB credentials setup
+  const keys = getSupabaseKeys();
+  const [showConfigModal, setShowConfigModal] = useState(false);
+  const [configUrl, setConfigUrl] = useState(keys.url);
+  const [configKey, setConfigKey] = useState(keys.key);
+
   const {
-    todos, allTodos, categories, stats, filter, selectedCategory, searchQuery, sortBy, sortOrder,
+    todos, allTodos, categories, stats, isLoading, filter, selectedCategory, searchQuery, sortBy, sortOrder,
     userPersona, meetings, habits, inspirations,
     addTodo, updateTodo, deleteTodo, toggleTodo, addSubtask, toggleSubtask, deleteSubtask,
     reorderTodos, addCategory, deleteCategory, setFilter, setSelectedCategory, setSearchQuery,
     setSortBy, setSortOrder, setPersona, addMeeting, updateMeeting, deleteMeeting,
     addHabit, toggleHabitDay, deleteHabit, addInspiration, deleteInspiration,
-  } = useTodos();
+    importLocalStorageData,
+  } = useTodos(user);
 
   const [showStats, setShowStats] = useState(false);
   const [showTargetBoard, setShowTargetBoard] = useState(false);
@@ -81,6 +98,45 @@ function App() {
     document.documentElement.classList.add('dark');
     localStorage.setItem('theme', 'dark');
   }, []);
+
+  // Initialize auth session and listen to state changes
+  useEffect(() => {
+    if (!supabase) {
+      setAuthInitialized(true);
+      return;
+    }
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      setAuthInitialized(true);
+      if (session?.user) {
+        const localData = localStorage.getItem('todo-app-state-v2');
+        if (localData) {
+          setShowImportPrompt(true);
+        }
+      }
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        const localData = localStorage.getItem('todo-app-state-v2');
+        if (localData) {
+          setShowImportPrompt(true);
+        }
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleImportData = async () => {
+    if (!user) return;
+    setImporting(true);
+    await importLocalStorageData(user.id);
+    setImporting(false);
+    setShowImportPrompt(false);
+  };
 
   useEffect(() => {
     if (stats.completed > prevCompletedRef.current) {
@@ -153,7 +209,7 @@ function App() {
         { opacity: 1, y: 0, duration: 0.6, ease: 'power3.out' }
       );
     }
-  }, [workspaceActive]);
+  }, [workspaceActive, authInitialized]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -175,6 +231,14 @@ function App() {
     reorderTodos([...reorderedWithRest, ...rest]);
   };
 
+  const handleLaunchWorkspace = () => {
+    if (!user && !guestMode) {
+      setShowAuthScreen(true);
+    } else {
+      setWorkspaceActive(true);
+    }
+  };
+
   const sortOptions: { value: typeof sortBy; label: string }[] = [
     { value: 'order', label: 'Custom order' }, 
     { value: 'createdAt', label: 'Date created' },
@@ -182,6 +246,30 @@ function App() {
     { value: 'priority', label: 'Priority' }, 
     { value: 'title', label: 'Title' },
   ];
+
+  if (!authInitialized) {
+    return (
+      <div className="fixed inset-0 flex items-center justify-center bg-[#07090e]">
+        <Loader2 size={40} className="text-[#2997ff] animate-spin" />
+      </div>
+    );
+  }
+
+  if (showAuthScreen && !user && !guestMode) {
+    return (
+      <AuthScreen
+        onAuthSuccess={() => {
+          setShowAuthScreen(false);
+          setWorkspaceActive(true);
+        }}
+        onContinueAsGuest={() => {
+          setGuestMode(true);
+          setShowAuthScreen(false);
+          setWorkspaceActive(true);
+        }}
+      />
+    );
+  }
 
   return (
     <>
@@ -194,6 +282,106 @@ function App() {
           meetingNotes={exporterNotes} 
           onClose={() => setShowExporter(false)} 
         />
+      )}
+
+      {/* Database Setup Modal */}
+      {showConfigModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn">
+          <div className="w-full max-w-md p-6 mx-4 border border-white/5 rounded-2xl bg-[#0c1017] text-white">
+            <h3 className="text-lg font-bold flex items-center gap-2">
+              <Database className="text-amber-400" size={20} />
+              Connect Supabase Database
+            </h3>
+            <p className="text-xs text-[#86868b] mt-2">
+              Paste your Supabase credentials here. They will be saved in your browser's local storage for this project.
+            </p>
+            <div className="mt-4 space-y-3">
+              <div>
+                <label className="text-[10px] font-semibold uppercase tracking-wider text-[#86868b]">Supabase URL</label>
+                <input
+                  type="text"
+                  value={configUrl}
+                  onChange={(e) => setConfigUrl(e.target.value)}
+                  placeholder="https://your-project.supabase.co"
+                  className="w-full h-10 px-3 mt-1 rounded-xl border border-white/5 bg-[#141a24] text-xs focus:outline-none focus:border-[#2997ff]/50"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-semibold uppercase tracking-wider text-[#86868b]">Anon Public Key</label>
+                <input
+                  type="text"
+                  value={configKey}
+                  onChange={(e) => setConfigKey(e.target.value)}
+                  placeholder="eyJhbGciOi..."
+                  className="w-full h-10 px-3 mt-1 rounded-xl border border-white/5 bg-[#141a24] text-xs focus:outline-none focus:border-[#2997ff]/50"
+                />
+              </div>
+            </div>
+            <div className="flex gap-2.5 mt-6">
+              <button
+                onClick={() => {
+                  if (updateSupabaseConfig(configUrl, configKey)) {
+                    window.location.reload();
+                  }
+                }}
+                className="flex-1 h-10 text-xs font-semibold text-white bg-[#2997ff] rounded-xl hover:bg-[#1a85ec] btn-pressable transition-all cursor-pointer"
+              >
+                Save Connection
+              </button>
+              <button
+                onClick={() => {
+                  resetSupabaseConfig();
+                  window.location.reload();
+                }}
+                className="px-3 h-10 text-xs font-normal text-red-400 border border-red-950/20 bg-red-950/5 rounded-xl hover:bg-red-950/15 transition-all cursor-pointer"
+                title="Reset to defaults"
+              >
+                Reset
+              </button>
+              <button
+                onClick={() => setShowConfigModal(false)}
+                className="px-4 h-10 text-xs font-normal text-[#86868b] border border-white/5 bg-transparent rounded-xl hover:bg-white/5 hover:text-white transition-all cursor-pointer"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Import Local Data Modal */}
+      {showImportPrompt && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn">
+          <div className="w-full max-w-sm p-6 mx-4 border border-white/5 rounded-2xl bg-[#0c1017] text-white text-center">
+            <div className="inline-flex items-center justify-center w-12 h-12 mb-4 rounded-full bg-[#2997ff]/10 text-[#2997ff]">
+              <Sparkles size={22} />
+            </div>
+            <h3 className="text-md font-bold">Import Local Tasks?</h3>
+            <p className="text-xs text-[#86868b] mt-2 max-w-xs mx-auto">
+              We detected existing tasks saved on this browser. Would you like to sync them to your cloud account?
+            </p>
+            <div className="flex flex-col gap-2 mt-6">
+              <button
+                onClick={handleImportData}
+                disabled={importing}
+                className="w-full h-10 text-xs font-semibold text-white bg-[#2997ff] rounded-xl hover:bg-[#1a85ec] disabled:opacity-50 transition-all cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                {importing ? <Loader2 size={13} className="animate-spin" /> : null}
+                <span>Import Tasks to Cloud</span>
+              </button>
+              <button
+                onClick={() => {
+                  localStorage.removeItem('todo-app-state-v2');
+                  setShowImportPrompt(false);
+                }}
+                disabled={importing}
+                className="w-full h-10 text-xs font-normal text-[#86868b] border border-white/5 bg-transparent rounded-xl hover:bg-white/5 hover:text-white transition-all cursor-pointer"
+              >
+                Keep Separated (Clear Local)
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       <div className="min-h-screen pb-12 transition-colors duration-300">
@@ -212,40 +400,124 @@ function App() {
             </div>
 
             <div className="flex items-center gap-2">
-              {workspaceActive ? (
+              {!keys.isEnv && (
+                <button
+                  onClick={() => setShowConfigModal(true)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-normal text-amber-400 bg-amber-950/10 border border-amber-900/20 rounded-full hover:bg-amber-950/20 btn-pressable transition-colors cursor-pointer"
+                  title="Configure Supabase Database"
+                >
+                  <Database size={13} />
+                  <span className="hidden sm:inline">DB Setup</span>
+                </button>
+              )}
+
+              {user ? (
                 <>
-                  <button 
-                    onClick={() => setWorkspaceActive(false)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-normal text-[var(--foreground)] bg-black/5 dark:bg-white/5 rounded-full hover:bg-black/10 dark:hover:bg-white/10 btn-pressable transition-colors cursor-pointer"
+                  <span className="text-xs text-[var(--muted-text)] font-mono hidden md:inline max-w-[150px] truncate mr-2">
+                    {user.email}
+                  </span>
+                  
+                  {workspaceActive ? (
+                    <>
+                      <button 
+                        onClick={() => setWorkspaceActive(false)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-normal text-[var(--foreground)] bg-black/5 dark:bg-white/5 rounded-full hover:bg-black/10 dark:hover:bg-white/10 btn-pressable transition-colors cursor-pointer"
+                      >
+                        <ArrowLeft size={13} />
+                        <span className="hidden sm:inline">Landing Page</span>
+                      </button>
+                      <button 
+                        onClick={() => setShowTargetBoard(true)} 
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-normal text-white bg-[var(--accent)] rounded-full hover:bg-[var(--accent-focus)] btn-pressable transition-colors cursor-pointer"
+                      >
+                        <Target size={13} />
+                        <span>Target Board</span>
+                      </button>
+                      <button 
+                        onClick={() => setShowStats(!showStats)} 
+                        className={cn(
+                          'p-2 rounded-full transition-all btn-pressable cursor-pointer', 
+                          showStats ? 'bg-[var(--accent)]/10 text-[var(--accent)]' : 'text-[var(--muted-text)] hover:bg-black/5 dark:hover:bg-white/5'
+                        )} 
+                        title="Statistics"
+                      >
+                        <BarChart3 size={18} />
+                      </button>
+                    </>
+                  ) : (
+                    <button 
+                      onClick={handleLaunchWorkspace}
+                      className="px-4 py-1.5 text-xs font-medium text-white bg-[var(--accent)] rounded-full hover:bg-[var(--accent-focus)] btn-pressable transition-colors cursor-pointer"
+                    >
+                      Launch App
+                    </button>
+                  )}
+
+                  <button
+                    onClick={async () => {
+                      if (supabase) {
+                        await supabase.auth.signOut();
+                        setGuestMode(false);
+                        setWorkspaceActive(false);
+                      }
+                    }}
+                    className="px-3 py-1.5 text-xs font-normal text-red-400 bg-red-950/10 border border-red-900/20 rounded-full hover:bg-red-950/20 btn-pressable transition-colors cursor-pointer"
                   >
-                    <ArrowLeft size={13} />
-                    <span className="hidden sm:inline">Landing Page</span>
-                  </button>
-                  <button 
-                    onClick={() => setShowTargetBoard(true)} 
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-normal text-white bg-[var(--accent)] rounded-full hover:bg-[var(--accent-focus)] btn-pressable transition-colors cursor-pointer"
-                  >
-                    <Target size={13} />
-                    <span>Target Board</span>
-                  </button>
-                  <button 
-                    onClick={() => setShowStats(!showStats)} 
-                    className={cn(
-                      'p-2 rounded-full transition-all btn-pressable cursor-pointer', 
-                      showStats ? 'bg-[var(--accent)]/10 text-[var(--accent)]' : 'text-[var(--muted-text)] hover:bg-black/5 dark:hover:bg-white/5'
-                    )} 
-                    title="Statistics"
-                  >
-                    <BarChart3 size={18} />
+                    Sign Out
                   </button>
                 </>
               ) : (
-                <button 
-                  onClick={() => setWorkspaceActive(true)}
-                  className="px-4 py-1.5 text-xs font-medium text-white bg-[var(--accent)] rounded-full hover:bg-[var(--accent-focus)] btn-pressable transition-colors cursor-pointer"
-                >
-                  Launch App
-                </button>
+                <>
+                  {workspaceActive ? (
+                    <>
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-amber-500 bg-amber-500/10 px-2 py-1 rounded-full">
+                        Guest Mode
+                      </span>
+                      <button 
+                        onClick={() => {
+                          setGuestMode(false);
+                          setWorkspaceActive(false);
+                          setShowAuthScreen(true);
+                        }}
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-normal text-[#2997ff] bg-[#2997ff]/10 rounded-full hover:bg-[#2997ff]/20 btn-pressable transition-colors cursor-pointer"
+                      >
+                        Cloud Sync
+                      </button>
+                      <button 
+                        onClick={() => setWorkspaceActive(false)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-normal text-[var(--foreground)] bg-black/5 dark:bg-white/5 rounded-full hover:bg-black/10 dark:hover:bg-white/10 btn-pressable transition-colors cursor-pointer"
+                      >
+                        <ArrowLeft size={13} />
+                        <span className="hidden sm:inline">Landing Page</span>
+                      </button>
+                      <button 
+                        onClick={() => setShowTargetBoard(true)} 
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-normal text-white bg-[var(--accent)] rounded-full hover:bg-[var(--accent-focus)] btn-pressable transition-colors cursor-pointer"
+                      >
+                        <Target size={13} />
+                        <span>Target Board</span>
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button 
+                        onClick={() => {
+                          setGuestMode(false);
+                          setShowAuthScreen(true);
+                        }}
+                        className="px-4 py-1.5 text-xs font-medium text-[var(--muted-text)] hover:text-white transition-colors cursor-pointer"
+                      >
+                        Sign In
+                      </button>
+                      <button 
+                        onClick={handleLaunchWorkspace}
+                        className="px-4 py-1.5 text-xs font-medium text-white bg-[var(--accent)] rounded-full hover:bg-[var(--accent-focus)] btn-pressable transition-colors cursor-pointer"
+                      >
+                        Launch App
+                      </button>
+                    </>
+                  )}
+                </>
               )}
             </div>
           </div>
@@ -278,7 +550,7 @@ function App() {
                   {HERO_WORDS.map((word, i) => (
                     <span
                       key={word}
-                      ref={(el) => { heroWordRefs.current[i] = el; }}
+                      ref={(el) => { if (el) heroWordRefs.current[i] = el; }}
                       className="inline-block mr-[0.3em] cursor-default opacity-0"
                       style={{ transformOrigin: 'bottom center' }}
                     >
@@ -296,7 +568,7 @@ function App() {
                 
                 <div ref={heroCtaRef} className="flex flex-wrap items-center gap-3 pt-2 opacity-0">
                   <button 
-                    onClick={() => setWorkspaceActive(true)}
+                    onClick={handleLaunchWorkspace}
                     className="px-5 py-2.5 text-sm font-semibold text-white bg-[var(--accent)] rounded-full hover:bg-[var(--accent-focus)] btn-pressable transition-colors cursor-pointer"
                   >
                     Launch Workspace
@@ -532,7 +804,7 @@ function App() {
                 Experience intent-driven productivity.
               </h3>
               <button 
-                onClick={() => setWorkspaceActive(true)}
+                onClick={handleLaunchWorkspace}
                 className="px-6 py-2.5 text-sm font-semibold text-white bg-[var(--accent)] rounded-full hover:bg-[var(--accent-focus)] btn-pressable transition-colors cursor-pointer"
               >
                 Launch Workspace
@@ -688,7 +960,13 @@ function App() {
                 </div>
 
                 {/* Primary Content Window */}
-                {viewMode === 'list' ? (
+                {isLoading ? (
+                  <div className="text-center py-20 bg-[var(--card-bg)] border border-[var(--border-color)]/60 rounded-[18px] flex flex-col items-center justify-center">
+                    <Loader2 size={36} className="text-[#2997ff] animate-spin mb-4" />
+                    <h3 className="text-sm font-semibold tracking-tight text-white mb-1">Syncing with database...</h3>
+                    <p className="text-xs text-[var(--muted-text)]">Retrieving your latest workspace setup.</p>
+                  </div>
+                ) : viewMode === 'list' ? (
                   /* Standard List view */
                   todos.length === 0 ? (
                     <div className="text-center py-20 bg-[var(--card-bg)] border border-[var(--border-color)]/60 rounded-[18px]">

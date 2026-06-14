@@ -59,7 +59,7 @@ export function HeroSection({ onDismiss }: HeroSectionProps) {
           {words.map((word, i) => (
             <span
               key={word}
-              ref={(el) => { taglineRef.current[i] = el; }}
+              ref={(el) => { if (el) taglineRef.current[i] = el; }}
               className="inline-block mr-4 sm:mr-6 text-[#fafafa] cursor-default"
               style={{
                 textShadow: '0 0 80px rgba(0,112,243,0.3)',
