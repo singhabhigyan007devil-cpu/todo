@@ -38,6 +38,10 @@ create table if not exists meetings (
   attendees text default '',
   notes text default '',
   meeting_link text default '',
+  pptx_name text,
+  pptx_text text,
+  minutes text,
+  extracted_tasks jsonb default '[]'::jsonb,
   created_at bigint not null
 );
 

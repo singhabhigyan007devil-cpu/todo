@@ -32,6 +32,10 @@ export interface Meeting {
   notes: string;
   meetingLink: string;
   createdAt: number;
+  pptxName?: string;
+  pptxText?: string;
+  minutes?: string;
+  extractedTasks?: Array<{ id: string; title: string; priority: 'low' | 'medium' | 'high' }>;
 }
 
 export interface Subtask {

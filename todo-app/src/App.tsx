@@ -400,15 +400,26 @@ function App() {
             </div>
 
             <div className="flex items-center gap-2">
-              {!keys.isEnv && (
+              {!keys.url || !keys.key ? (
                 <button
                   onClick={() => setShowConfigModal(true)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-normal text-amber-400 bg-amber-950/10 border border-amber-900/20 rounded-full hover:bg-amber-950/20 btn-pressable transition-colors cursor-pointer"
-                  title="Configure Supabase Database"
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-normal text-amber-400 bg-amber-950/10 border border-amber-900/20 rounded-full hover:bg-amber-950/20 btn-pressable transition-colors cursor-pointer animate-pulse"
+                  title="Configure Supabase Database (Not Connected)"
                 >
                   <Database size={13} />
-                  <span className="hidden sm:inline">DB Setup</span>
+                  <span>DB Setup</span>
                 </button>
+              ) : (
+                !keys.isEnv && (
+                  <button
+                    onClick={() => setShowConfigModal(true)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-normal text-[var(--muted-text)] hover:text-white bg-black/5 dark:bg-white/5 border border-white/10 rounded-full btn-pressable transition-colors cursor-pointer"
+                    title="Change Supabase Database Configuration (Connected)"
+                  >
+                    <Database size={13} />
+                    <span className="hidden sm:inline">DB Config</span>
+                  </button>
+                )
               )}
 
               {user ? (
