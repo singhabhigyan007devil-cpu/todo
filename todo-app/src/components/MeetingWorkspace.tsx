@@ -15,7 +15,7 @@ interface MeetingWorkspaceProps {
   onUpdateMeeting: (id: string, updates: Partial<Meeting>) => void;
   onDeleteMeeting: (id: string) => void;
   onAddTodo: (title: string, description: string, priority: 'low' | 'medium' | 'high', categoryId: string | null, dueDate: number | null) => void;
-  onLaunchPresentation: (title: string, notes: string) => void;
+  onLaunchPresentation: (title: string, notes: string, pptxText?: string, pptxName?: string) => void;
 }
 
 export function MeetingWorkspace({
@@ -486,13 +486,27 @@ export function MeetingWorkspace({
                   </div>
                 </div>
 
-                <button
-                  onClick={() => onLaunchPresentation(activeMeeting.title, localNotes)}
-                  className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-[var(--accent)] hover:bg-[var(--accent-focus)] rounded-full transition-colors cursor-pointer self-start md:self-auto btn-pressable"
-                >
-                  <Presentation size={13} />
-                  <span>Run Presentation Slides</span>
-                </button>
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    onClick={() => onLaunchPresentation(activeMeeting.title, localNotes)}
+                    className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white/80 bg-white/5 border border-white/[0.08] hover:bg-white/[0.12] hover:text-white rounded-full transition-colors cursor-pointer self-start md:self-auto btn-pressable"
+                    title="Launch standard presentation slides compiled from meeting notes"
+                  >
+                    <Presentation size={13} />
+                    <span>Run Meeting Slides</span>
+                  </button>
+
+                  {activeMeeting.pptxText && (
+                    <button
+                      onClick={() => onLaunchPresentation(activeMeeting.title, localNotes, activeMeeting.pptxText, activeMeeting.pptxName)}
+                      className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-[var(--accent)] hover:bg-[var(--accent-focus)] rounded-full transition-colors cursor-pointer self-start md:self-auto btn-pressable"
+                      title="Launch interactive presentation summary compiled from the uploaded PPTX presentation"
+                    >
+                      <Presentation size={13} className="animate-pulse" />
+                      <span>Run PPTX Summary</span>
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* Notes and action items */}
@@ -645,42 +659,53 @@ export function MeetingWorkspace({
                 <div className="space-y-4 animate-fadeIn">
                   
                   {/* Dashboard Tab Buttons */}
-                  <div className="flex items-center gap-1.5 border-b border-white/5 pb-2">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/5 pb-2 w-full">
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => setIntelligenceTab('minutes')}
+                        className={cn(
+                          "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer",
+                          intelligenceTab === 'minutes' 
+                            ? "bg-[#2997ff]/10 text-[#2997ff]" 
+                            : "text-[#86868b] hover:text-white"
+                        )}
+                      >
+                        Minutes & Agendas
+                      </button>
+                      <button
+                        onClick={() => setIntelligenceTab('tasks')}
+                        className={cn(
+                          "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5",
+                          intelligenceTab === 'tasks' 
+                            ? "bg-[#2997ff]/10 text-[#2997ff]" 
+                            : "text-[#86868b] hover:text-white"
+                        )}
+                      >
+                        Extracted Tasks
+                        {(activeMeeting.extractedTasks || []).filter(t => !t.synced).length > 0 && (
+                          <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                        )}
+                      </button>
+                      <button
+                        onClick={() => setIntelligenceTab('slides')}
+                        className={cn(
+                          "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer",
+                          intelligenceTab === 'slides' 
+                            ? "bg-[#2997ff]/10 text-[#2997ff]" 
+                            : "text-[#86868b] hover:text-white"
+                        )}
+                      >
+                        Raw Slides Text
+                      </button>
+                    </div>
+
                     <button
-                      onClick={() => setIntelligenceTab('minutes')}
-                      className={cn(
-                        "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer",
-                        intelligenceTab === 'minutes' 
-                          ? "bg-[#2997ff]/10 text-[#2997ff]" 
-                          : "text-[#86868b] hover:text-white"
-                      )}
+                      onClick={() => onLaunchPresentation(activeMeeting.title, localNotes, activeMeeting.pptxText, activeMeeting.pptxName)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-[#2997ff] hover:bg-[#1a85ec] rounded-lg transition-colors cursor-pointer btn-pressable ml-auto"
+                      title="Run slideshow summary compiled from uploaded presentation"
                     >
-                      Minutes & Agendas
-                    </button>
-                    <button
-                      onClick={() => setIntelligenceTab('tasks')}
-                      className={cn(
-                        "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5",
-                        intelligenceTab === 'tasks' 
-                          ? "bg-[#2997ff]/10 text-[#2997ff]" 
-                          : "text-[#86868b] hover:text-white"
-                      )}
-                    >
-                      Extracted Tasks
-                      {(activeMeeting.extractedTasks || []).filter(t => !t.synced).length > 0 && (
-                        <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-                      )}
-                    </button>
-                    <button
-                      onClick={() => setIntelligenceTab('slides')}
-                      className={cn(
-                        "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer",
-                        intelligenceTab === 'slides' 
-                          ? "bg-[#2997ff]/10 text-[#2997ff]" 
-                          : "text-[#86868b] hover:text-white"
-                      )}
-                    >
-                      Raw Slides Text
+                      <Presentation size={12} />
+                      <span>Present PPTX Summary</span>
                     </button>
                   </div>
 

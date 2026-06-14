@@ -65,6 +65,8 @@ function App() {
   const [showExporter, setShowExporter] = useState(false);
   const [exporterTitle, setExporterTitle] = useState('');
   const [exporterNotes, setExporterNotes] = useState('');
+  const [exporterPptxText, setExporterPptxText] = useState<string | undefined>(undefined);
+  const [exporterPptxName, setExporterPptxName] = useState<string | undefined>(undefined);
 
   // View safety constraint effect
   useEffect(() => {
@@ -280,7 +282,13 @@ function App() {
           todos={allTodos} 
           meetingTitle={exporterTitle} 
           meetingNotes={exporterNotes} 
-          onClose={() => setShowExporter(false)} 
+          pptxText={exporterPptxText}
+          pptxName={exporterPptxName}
+          onClose={() => {
+            setShowExporter(false);
+            setExporterPptxText(undefined);
+            setExporterPptxName(undefined);
+          }} 
         />
       )}
 
@@ -1033,9 +1041,11 @@ function App() {
                     onUpdateMeeting={updateMeeting} 
                     onDeleteMeeting={deleteMeeting} 
                     onAddTodo={addTodo} 
-                    onLaunchPresentation={(title, notes) => {
+                    onLaunchPresentation={(title, notes, pptxText, pptxName) => {
                       setExporterTitle(title);
                       setExporterNotes(notes);
+                      setExporterPptxText(pptxText);
+                      setExporterPptxName(pptxName);
                       setShowExporter(true);
                     }}
                   />

@@ -7,6 +7,8 @@ interface PresentationExporterProps {
   todos: Todo[];
   meetingTitle?: string;
   meetingNotes?: string;
+  pptxText?: string;
+  pptxName?: string;
   onClose: () => void;
 }
 
@@ -17,96 +19,215 @@ interface SlideData {
   type: 'welcome' | 'list' | 'conclusion';
 }
 
-export function PresentationExporter({ todos, meetingTitle = "TaskFlow Agenda", meetingNotes = "", onClose }: PresentationExporterProps) {
+export function PresentationExporter({ 
+  todos, 
+  meetingTitle = "TaskFlow Agenda", 
+  meetingNotes = "", 
+  pptxText, 
+  pptxName, 
+  onClose 
+}: PresentationExporterProps) {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  // Compile Slides based on todos or meeting notes
+  // Compile Slides based on todos or meeting notes or pptxText
   const [slides, setSlides] = useState<SlideData[]>([]);
 
   useEffect(() => {
     const compiledSlides: SlideData[] = [];
 
-    // Slide 1: Welcome
-    compiledSlides.push({
-      title: meetingTitle,
-      subtitle: "Sprint Planning & Backlog Synchronization Agenda",
-      content: [
-        "TaskFlow automated presentation slide deck.",
-        "Facilitating productive reviews, sprint gates, and action alignments.",
-        `Date: ${new Date().toLocaleDateString()} | Compiled automatically`
-      ],
-      type: 'welcome'
-    });
+    if (pptxText) {
+      // Split raw slides by PPTX slide separators: "--- Slide X ---"
+      const slideChunks = pptxText.split(/--- Slide \d+ ---\r?\n/g);
+      const actualSlideTexts = slideChunks.map(c => c.trim()).filter(c => c.length > 0);
 
-    // Extract action items from meeting notes if notes are present
-    const meetingActionItems: string[] = [];
-    if (meetingNotes) {
-      const lines = meetingNotes.split('\n');
-      lines.forEach((line) => {
-        const match = line.match(/^-\s*\[\s*\]\s*(.*)$/);
-        if (match && match[1]) {
-          meetingActionItems.push(match[1].trim());
+      // Slide 1: Welcome Slide
+      compiledSlides.push({
+        title: pptxName ? pptxName.replace(/\.[^/.]+$/, "") : meetingTitle,
+        subtitle: "Executive Presentation Summary & Insights",
+        content: [
+          `Summarized presentation compiled from ${actualSlideTexts.length} source slides.`,
+          "Extracted core outlines, highlights, and action items.",
+          `Date: ${new Date().toLocaleDateString()} | Compiled automatically`
+        ],
+        type: 'welcome'
+      });
+
+      // Slide 2: Table of Contents / Executive Outline
+      const outlineBullets: string[] = [];
+      actualSlideTexts.forEach((slideText, idx) => {
+        const lines = slideText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+        if (lines.length > 0) {
+          const firstLine = lines[0];
+          const title = firstLine.length < 50 ? firstLine : `Topic Discussion ${idx + 1}`;
+          outlineBullets.push(`Topic ${idx + 1}: ${title}`);
         }
       });
-    }
 
-    if (meetingActionItems.length > 0) {
-      // Slide 2: Meeting Action Items
+      if (outlineBullets.length > 0) {
+        compiledSlides.push({
+          title: "Executive Agenda Index",
+          subtitle: "Overview of the presentation slide structures",
+          content: outlineBullets.slice(0, 5),
+          type: 'list'
+        });
+      }
+
+      // Slide 3+: Individual Slide Summary
+      // We will slice to max 6 slides to keep presentation concise and high impact
+      actualSlideTexts.slice(0, 6).forEach((slideText, idx) => {
+        const lines = slideText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+        if (lines.length === 0) return;
+
+        let slideTitle = `Topic ${idx + 1}`;
+        let startIdx = 0;
+
+        if (lines[0].length < 50) {
+          slideTitle = lines[0];
+          startIdx = 1;
+        }
+
+        const bodyLines = lines.slice(startIdx);
+        const bullets: string[] = [];
+
+        bodyLines.forEach(line => {
+          if (line.length > 120) {
+            const sentences = line.match(/[^.!?]+[.!?]+/g) || [line];
+            sentences.forEach(s => {
+              if (s.trim().length > 10) {
+                bullets.push(s.trim());
+              }
+            });
+          } else if (line.length > 5) {
+            bullets.push(line);
+          }
+        });
+
+        if (bullets.length > 0) {
+          compiledSlides.push({
+            title: slideTitle,
+            subtitle: `Slide ${idx + 1} Summary Key Insights`,
+            content: bullets.slice(0, 4),
+            type: 'list'
+          });
+        }
+      });
+
+      // Slide: Action items from meeting notes
+      const meetingActionItems: string[] = [];
+      if (meetingNotes) {
+        const lines = meetingNotes.split('\n');
+        lines.forEach((line) => {
+          const match = line.match(/^-\s*\[\s*\]\s*(.*)$/);
+          if (match && match[1]) {
+            meetingActionItems.push(match[1].trim());
+          }
+        });
+      }
+
+      if (meetingActionItems.length > 0) {
+        compiledSlides.push({
+          title: "Extracted Action Items",
+          subtitle: "Key deliverables compiled from presentation review",
+          content: meetingActionItems.slice(0, 5),
+          type: 'list'
+        });
+      }
+
+      // Slide: Conclusion
       compiledSlides.push({
-        title: "Meeting Actions & Tasks",
-        subtitle: "Key deliverables compiled from current notes",
-        content: meetingActionItems.slice(0, 5),
-        type: 'list'
+        title: "Conclusions & Next Steps",
+        subtitle: "Review aligned milestones and exit presentation",
+        content: [
+          "Validate all extracted timelines and sync with task board.",
+          "Distribute synthesized meeting summary to team members.",
+          "Track task progression via TaskFlow boards."
+        ],
+        type: 'conclusion'
+      });
+
+    } else {
+      // Slide 1: Welcome
+      compiledSlides.push({
+        title: meetingTitle,
+        subtitle: "Sprint Planning & Backlog Synchronization Agenda",
+        content: [
+          "TaskFlow automated presentation slide deck.",
+          "Facilitating productive reviews, sprint gates, and action alignments.",
+          `Date: ${new Date().toLocaleDateString()} | Compiled automatically`
+        ],
+        type: 'welcome'
+      });
+
+      // Extract action items from meeting notes if notes are present
+      const meetingActionItems: string[] = [];
+      if (meetingNotes) {
+        const lines = meetingNotes.split('\n');
+        lines.forEach((line) => {
+          const match = line.match(/^-\s*\[\s*\]\s*(.*)$/);
+          if (match && match[1]) {
+            meetingActionItems.push(match[1].trim());
+          }
+        });
+      }
+
+      if (meetingActionItems.length > 0) {
+        // Slide 2: Meeting Action Items
+        compiledSlides.push({
+          title: "Meeting Actions & Tasks",
+          subtitle: "Key deliverables compiled from current notes",
+          content: meetingActionItems.slice(0, 5),
+          type: 'list'
+        });
+      }
+
+      // Slide 3: Active High Priority Issues
+      const highPriorityTodos = todos.filter((t) => !t.completed && t.priority === 'high');
+      if (highPriorityTodos.length > 0) {
+        compiledSlides.push({
+          title: "Critical Path Deliverables",
+          subtitle: "High priority active tasks requiring instant alignment",
+          content: highPriorityTodos.map((t) => t.title).slice(0, 5),
+          type: 'list'
+        });
+      }
+
+      // Slide 4: Roadmap Planning Progress
+      const q1Total = todos.filter((t) => t.roadmapPhase === 'q1');
+      const q2Total = todos.filter((t) => t.roadmapPhase === 'q2');
+      const q3Total = todos.filter((t) => t.roadmapPhase === 'q3');
+      const q4Total = todos.filter((t) => t.roadmapPhase === 'q4');
+
+      if (q1Total.length > 0 || q2Total.length > 0 || q3Total.length > 0 || q4Total.length > 0) {
+        const roadmapItems: string[] = [];
+        if (q1Total.length > 0) roadmapItems.push(`Q1 Strategy: ${q1Total.length} tasks scheduled (${Math.round((q1Total.filter((t) => t.completed).length / q1Total.length) * 100)}% complete)`);
+        if (q2Total.length > 0) roadmapItems.push(`Q2 Prototype: ${q2Total.length} tasks scheduled (${Math.round((q2Total.filter((t) => t.completed).length / q2Total.length) * 100)}% complete)`);
+        if (q3Total.length > 0) roadmapItems.push(`Q3 Dev Sprints: ${q3Total.length} tasks scheduled (${Math.round((q3Total.filter((t) => t.completed).length / q3Total.length) * 100)}% complete)`);
+        if (q4Total.length > 0) roadmapItems.push(`Q4 Launch Gate: ${q4Total.length} tasks scheduled (${Math.round((q4Total.filter((t) => t.completed).length / q4Total.length) * 100)}% complete)`);
+        
+        compiledSlides.push({
+          title: "Quarterly Roadmap Milestones",
+          subtitle: "Active roadmap phases and overall progress tracks",
+          content: roadmapItems,
+          type: 'list'
+        });
+      }
+
+      // Slide 5: Conclusion
+      compiledSlides.push({
+        title: "Align & Execute",
+        subtitle: "TaskFlow Productivity Engine",
+        content: [
+          "Time-boxed sprints boost completion rate by 40%.",
+          "Action tracking eliminates decision backlog.",
+          "Let's align deliverables and launch sprint."
+        ],
+        type: 'conclusion'
       });
     }
-
-    // Slide 3: Active High Priority Issues
-    const highPriorityTodos = todos.filter((t) => !t.completed && t.priority === 'high');
-    if (highPriorityTodos.length > 0) {
-      compiledSlides.push({
-        title: "Critical Path Deliverables",
-        subtitle: "High priority active tasks requiring instant alignment",
-        content: highPriorityTodos.map((t) => t.title).slice(0, 5),
-        type: 'list'
-      });
-    }
-
-    // Slide 4: Roadmap Planning Progress
-    const q1Tasks = todos.filter((t) => t.roadmapPhase === 'q1');
-    const q2Tasks = todos.filter((t) => t.roadmapPhase === 'q2');
-    const q3Tasks = todos.filter((t) => t.roadmapPhase === 'q3');
-    const q4Tasks = todos.filter((t) => t.roadmapPhase === 'q4');
-    
-    if (q1Tasks.length > 0 || q2Tasks.length > 0 || q3Tasks.length > 0 || q4Tasks.length > 0) {
-      const roadmapItems: string[] = [];
-      if (q1Tasks.length > 0) roadmapItems.push(`Q1 Strategy: ${q1Tasks.length} tasks scheduled (${Math.round((q1Tasks.filter((t) => t.completed).length / q1Tasks.length) * 100)}% complete)`);
-      if (q2Tasks.length > 0) roadmapItems.push(`Q2 Prototype: ${q2Tasks.length} tasks scheduled (${Math.round((q2Tasks.filter((t) => t.completed).length / q2Tasks.length) * 100)}% complete)`);
-      if (q3Tasks.length > 0) roadmapItems.push(`Q3 Dev Sprints: ${q3Tasks.length} tasks scheduled (${Math.round((q3Tasks.filter((t) => t.completed).length / q3Tasks.length) * 100)}% complete)`);
-      if (q4Tasks.length > 0) roadmapItems.push(`Q4 Launch Gate: ${q4Tasks.length} tasks scheduled (${Math.round((q4Tasks.filter((t) => t.completed).length / q4Tasks.length) * 100)}% complete)`);
-      
-      compiledSlides.push({
-        title: "Quarterly Roadmap Milestones",
-        subtitle: "Active roadmap phases and overall progress tracks",
-        content: roadmapItems,
-        type: 'list'
-      });
-    }
-
-    // Slide 5: Conclusion
-    compiledSlides.push({
-      title: "Align & Execute",
-      subtitle: "TaskFlow Productivity Engine",
-      content: [
-        "Time-boxed sprints boost completion rate by 40%.",
-        "Action tracking eliminates decision backlog.",
-        "Let's align deliverables and launch sprint."
-      ],
-      type: 'conclusion'
-    });
 
     setSlides(compiledSlides);
-  }, [todos, meetingTitle, meetingNotes]);
+  }, [todos, meetingTitle, meetingNotes, pptxText, pptxName]);
 
   // Keyboard navigation
   useEffect(() => {
